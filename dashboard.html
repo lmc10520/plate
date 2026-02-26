@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>衛武營停車場即時監控 (正式版)</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/chartjs/3.9.1/chart.min.js"></script>
+    <script src="chart.min.js"></script>
+    <style>
+        body { font-family: "Microsoft JhengHei", sans-serif; background-color: #f4f7f6; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        .charts-container { display: flex; flex-wrap: wrap; justify-content: space-around; margin-bottom: 30px; }
+        .chart-box { width: 40%; min-width: 320px; text-align: center; background: #fff; padding: 15px; border-radius: 10px; }
+        .chart-info { margin-top: 10px; font-size: 18px; font-weight: bold; }
+        
+        /* 種類統計樣式 */
+        .type-stats { display: flex; justify-content: space-around; background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #eee; }
+        .type-item { text-align: center; flex: 1; }
+        .type-item span { display: block; font-size: 24px; font-weight: bold; color: #2e7d32; }
+        .type-label { font-size: 14px; color: #666; }
+
+        .search-section { border-top: 2px solid #eee; padding-top: 30px; text-align: center; padding-bottom: 40px; }
+        input { padding: 12px; width: 280px; font-size: 18px; border: 2px solid #ddd; border-radius: 8px; }
+        button { padding: 12px 30px; font-size: 18px; background-color: #4CAF50; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        #result { margin-top: 25px; font-size: 28px; font-weight: bold; color: #1e88e5; min-height: 40px; }
+        .status-msg { font-size: 14px; color: #888; text-align: center; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>停車場停泊車輛數即時資訊</h1>
+    <div id="status" class="status-msg">連線中...</div>
+
+    <!-- 圓餅圖區 -->
+    <div class="charts-container">
+        <div class="chart-box">
+            <h3>B1F</h3>
+            <canvas id="chartB1"></canvas>
+            <div id="infoB1" class="chart-info">---</div>
+        </div>
+        <div class="chart-box">
+            <h3>B2F</h3>
+            <canvas id="chartB2"></canvas>
+            <div id="infoB2" class="chart-info">---</div>
+        </div>
+    </div>
+
+    <!-- 車格種類詳細統計 (不分樓層) -->
+    <div class="type-stats">
+        <div class="type-item">
+            <div class="type-label">身障車輛</div>
+            <span id="stat-disabled">0</span>
+        </div>
+        <div class="type-item" style="border-left: 1px solid #ddd; border-right: 1px solid #ddd;">
+            <div class="type-label">親子車輛</div>
+            <span id="stat-parent">0</span>
+        </div>
+        <div class="type-item">
+            <div class="type-label">綠能/電動車輛</div>
+            <span id="stat-ev">0</span>
+        </div>
+    </div>
+
+    <!-- 搜尋區 -->
+    <div class="search-section">
+        <h2>車牌位置檢索</h2>
+        <input type="text" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌數字" onkeyup="if(event.keyCode==13) searchCar()">
+        <button onclick="searchCar()">搜尋</button>
+        <div id="result"></div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "https://analytics.sto-tek.com/_nodered/api/callExternalAPI?apiKey=495370807e744c8685b05ed5aabc3712&EAPI=API_Building_02&buildingID=kaohsiung_weiwuying&s=&m=lpr&p=0";
+    
+    // 你提供的樓層總數
+    const TOTAL_B1 = 221;
+    const TOTAL_B2 = 495;
+
+    let allData = [];
+    let chartB1, chartB2;
+
+    function initCharts() {
+        const config = (color1, color2) => ({
+            type: 'pie',
+            data: {
+                labels: ['已入場車輛數', '剩餘空位數'],
+                datasets: [{ data: [0, 100], backgroundColor: [color1, color2] }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        chartB1 = new Chart(document.getElementById('chartB1'), config('#ff6384', '#36a2eb'));
+        chartB2 = new Chart(document.getElementById('chartB2'), config('#ff9f40', '#4bc0c0'));
+    }
+
+    async function updateDashboard() {
+        try {
+            document.getElementById('status').innerText = "連線中...";
+            const response = await fetch(API_URL);
+            
+            if (!response.ok) throw new Error(`HTTP 錯誤: ${response.status}`);
+            
+            const rawData = await response.json();
+
+            // 關鍵修正：將回傳的 data 陣列存入 allData
+            if (rawData && rawData.data) {
+                allData = rawData.data;
+            } else {
+                throw new Error("API 資料格式異常");
+            }
+
+            document.getElementById('status').innerText = `最後更新時間：${new Date().toLocaleTimeString()} (共抓取 ${allData.length} 筆資料)`;
+
+            // 邏輯修正：使用 Floor 判斷樓層，且 LicensePlate 不為 "NONE" 視為佔用
+            const occupiedB1 = allData.filter(item => 
+                item.Floor === 'B1F' && item.LicensePlate && item.LicensePlate !== "NONE"
+            ).length;
+
+            const occupiedB2 = allData.filter(item => 
+                item.Floor === 'B2F' && item.LicensePlate && item.LicensePlate !== "NONE"
+            ).length;
+
+            // 特殊車格統計 (Type)
+            const disabledOcc = allData.filter(item => item.Type.includes("身障") && item.LicensePlate !== "NONE").length;
+            const parentOcc = allData.filter(item => item.Type.includes("親子") && item.LicensePlate !== "NONE").length;
+            const evOcc = allData.filter(item => (item.Type.includes("電動") || item.Type.includes("綠能")) && item.LicensePlate !== "NONE").length;
+
+            // 更新 UI
+            updateChart(chartB1, occupiedB1, TOTAL_B1, 'infoB1');
+            updateChart(chartB2, occupiedB2, TOTAL_B2, 'infoB2');
+            
+            document.getElementById('stat-disabled').innerText = disabledOcc;
+            document.getElementById('stat-parent').innerText = parentOcc;
+            document.getElementById('stat-ev').innerText = evOcc;
+
+        } catch (error) {
+            console.error("更新失敗:", error);
+            document.getElementById('status').innerText = "更新失敗: " + error.message;
+        }
+    }
+
+    function updateChart(chartObj, occupied, total, infoId) {
+        const empty = total - occupied;
+        chartObj.data.datasets[0].data = [occupied, empty];
+        chartObj.update();
+        const percent = ((occupied / total) * 100).toFixed(1);
+        document.getElementById(infoId).innerHTML = `
+            已入場車輛數： ${occupied} / 停車格總數： ${total}<br>
+            <span style="color:#d32f2f">滿場率: ${percent}%</span>
+        `;
+    }
+
+    function searchCar() {
+        // 1. 取得使用者輸入，並利用正規表示式只留下數字 (\D 代表非數字的字元，全部替換掉)
+        const inputRaw = document.getElementById('plateInput').value.trim();
+        const inputNumbers = inputRaw.replace(/\D/g, ''); 
+
+        if (!inputNumbers) {
+            document.getElementById('result').innerText = "請輸入車牌數字";
+            return;
+        }
+
+        // 2. 在資料中尋找，同樣將 LicensePlate 轉為純數字進行比對
+        // 使用 filter 而不是 find，因為可能會有兩台車數字相同 (例如 ABC-1234 與 DEF-1234)
+        const matches = allData.filter(item => {
+            if (!item.LicensePlate || item.LicensePlate === "NONE") return false;
+            
+            const plateNumbers = item.LicensePlate.toString().replace(/\D/g, '');
+            return plateNumbers === inputNumbers;
+        });
+        
+        const resultDiv = document.getElementById('result');
+        
+        if (matches.length > 0) {
+            // 如果有多台車數字相同，全部顯示出來
+            let htmlResult = "";
+            matches.forEach(car => {
+                htmlResult += `
+                    <div style="margin-bottom: 15px;">
+                        🚗 車牌：<span style="color: #2e7d32;">${car.LicensePlate}</span><br>
+                        📍 位置：<span style="color: #1e88e5;">${car.ParkingNumber}</span><br>
+                        <small style="font-size: 16px; color: #666;">樓層：${car.Floor} / 種類：${car.Type}</small>
+                    </div>
+                `;
+            });
+            resultDiv.innerHTML = htmlResult;
+        } else {
+            resultDiv.innerHTML = `<span style="color:#d32f2f">找不到包含數字 "${inputNumbers}" 的車牌</span>`;
+        }
+    }
+
+    // 確保全部資源載入後才執行
+    function startApp() {
+        if (typeof Chart === 'undefined') {
+            setTimeout(startApp, 100); // 如果還沒載入完，等 100 毫秒再試一次
+            return;
+        }
+        initCharts();
+        updateDashboard();
+        // 設定每 2 分鐘更新一次
+        setInterval(updateDashboard, 120000);
+    }
+
+    startApp(); // 取代原本直接呼叫的方式
+</script>
+
+</body>
+</html>
