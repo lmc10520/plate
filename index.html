@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>衛武營停車場即時監控 (正式版)</title>
+    <title>停泊車輛即時資訊</title>
     <script src="https://ajax.googleapis.com/ajax/libs/chartjs/3.9.1/chart.min.js"></script>
     <script src="chart.min.js"></script>
     <style>
@@ -30,7 +30,7 @@
 <body>
 
 <div class="container">
-    <h1>停車場停泊車輛數即時資訊</h1>
+    <h1>停泊車輛即時資訊</h1>
     <div id="status" class="status-msg">連線中...</div>
 
     <!-- 圓餅圖區 -->
@@ -65,8 +65,8 @@
 
     <!-- 搜尋區 -->
     <div class="search-section">
-        <h2>車牌位置檢索</h2>
-        <input type="text" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌數字" onkeyup="if(event.keyCode==13) searchCar()">
+        <h2>停車位置檢索</h2>
+        <input type="text" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="請輸入車牌「數字」" onkeyup="if(event.keyCode==13) searchCar()">
         <button onclick="searchCar()">搜尋</button>
         <div id="result"></div>
     </div>
@@ -92,8 +92,8 @@
             options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
         });
 
-        chartB1 = new Chart(document.getElementById('chartB1'), config('#ff6384', '#36a2eb'));
-        chartB2 = new Chart(document.getElementById('chartB2'), config('#ff9f40', '#4bc0c0'));
+        chartB1 = new Chart(document.getElementById('chartB1'), config('#6b6b6b', '#e1e1e1'));
+        chartB2 = new Chart(document.getElementById('chartB2'), config('#6b6b6b', '#e1e1e1'));
     }
 
     async function updateDashboard() {
@@ -149,7 +149,7 @@
         const percent = ((occupied / total) * 100).toFixed(1);
         document.getElementById(infoId).innerHTML = `
             已入場車輛數： ${occupied} / 停車格總數： ${total}<br>
-            <span style="color:#d32f2f">滿場率: ${percent}%</span>
+            <span style="color:#d32f2f">滿場率： ${percent}%</span>
         `;
     }
 
@@ -209,3 +209,4 @@
 
 </body>
 </html>
+
