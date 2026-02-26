@@ -44,6 +44,24 @@
         /* 重要：固定一個高度比例，防止手機版縮得太小 */
         aspect-ratio: 1 / 1; 
     }
+    /* 種類統計樣式 */
+    .type-stats { 
+        display: flex; justify-content: space-around; 
+        background: #f9f9f9; 
+        padding: 15px; 
+        border-radius: 10px; 
+        margin-bottom: 30px; 
+        border: 1px solid #eee; 
+    }
+    .type-item {
+        text-align: center; flex: 1; 
+    }
+    .type-item span {
+        display: block; font-size: 24px; font-weight: bold; color: #2e7d32; 
+    }
+    .type-label { 
+        font-size: 14px; color: #666; 
+    }
 
     /* 手機版排版優化 (螢幕小於 768px 時執行) */
     @media (max-width: 768px) {
@@ -79,6 +97,21 @@
         width: 80%; /* 手機版輸入框不要寫死 px，改用百分比 */
         max-width: 300px;
         font-size: 18px; 
+    }
+    button { 
+        padding: 12px 30px; font-size: 18px; 
+        background-color: #4CAF50; 
+        color: white; 
+        border: none; border-radius: 8px; cursor: pointer; 
+    }
+    button:hover { 
+        background-color: #45a049; 
+    }
+    #result { 
+        margin-top: 25px; font-size: 28px; font-weight: bold; color: #1e88e5; min-height: 40px; 
+    }
+    .status-msg { 
+        font-size: 14px; color: #888; text-align: center; margin-bottom: 10px; 
     }
     </style>
 </head>
@@ -264,5 +297,6 @@
 
 </body>
 </html>
+
 
 
