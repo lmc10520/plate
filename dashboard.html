@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>停車場車流統計</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#0a0e1a; --surface:#111827; --surface2:#1a2234; --border:#1e2d45;
+    --b1f:#00d4ff; --b2f:#a78bfa; --total:#34d399; --amber:#f59e0b;
+    --danger:#ef4444; --success:#10b981; --muted:#64748b; --text:#e2e8f0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;}
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(ellipse 60% 40% at 10% 20%,rgba(0,212,255,.04) 0%,transparent 60%),
+               radial-gradient(ellipse 40% 60% at 90% 80%,rgba(167,139,250,.05) 0%,transparent 60%);
+  }
+  .wrap{max-width:1400px;margin:0 auto;padding:24px 20px;position:relative;z-index:1;}
+
+  /* Header */
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px;}
+  .logo{display:flex;align-items:center;gap:14px;}
+  .logo-icon{width:44px;height:44px;background:#eeeeee;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  h1{font-size:1.3rem;font-weight:700;}
+  h1 span{display:block;font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+  .hdr-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .status{display:flex;align-items:center;gap:7px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success);animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
+  .dot-text{font-size:.78rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+  .badge{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:5px;}
+  .badge b{color:var(--amber);}
+  #last-update{font-size:.78rem;color:var(--b1f);font-family:'JetBrains Mono',monospace;}
+
+  /* Floor tabs */
+  .floor-tabs{display:flex;gap:8px;margin-bottom:20px;}
+  .ftab{padding:8px 22px;border-radius:8px;font-size:.85rem;font-weight:600;border:2px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .2s;letter-spacing:.04em;}
+  .ftab[data-f="all"].on {border-color:var(--total);color:var(--total);background:rgba(52,211,153,.08);}
+  .ftab[data-f="B1F"].on {border-color:var(--b1f);color:var(--b1f);background:rgba(0,212,255,.08);}
+  .ftab[data-f="B2F"].on {border-color:var(--b2f);color:var(--b2f);background:rgba(167,139,250,.08);}
+
+  /* Stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+  @media(max-width:860px){.stats{grid-template-columns:repeat(2,1fr)}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden;transition:transform .2s,border-color .3s;}
+  .card:hover{transform:translateY(-2px);}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0;transition:opacity .3s;}
+  .card:hover::before{opacity:1;}
+  .card.ct::before{background:linear-gradient(90deg,var(--total),var(--b1f));}
+  .card.cb1::before{background:linear-gradient(90deg,var(--b1f),#0ea5e9);}
+  .card.cb2::before{background:linear-gradient(90deg,var(--b2f),#ec4899);}
+  .card.cr::before{background:linear-gradient(90deg,var(--amber),var(--danger));}
+  .clabel{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;}
+  .cval{font-size:2.1rem;font-weight:700;font-family:'JetBrains Mono',monospace;line-height:1;}
+  .cval.ct{color:var(--total);} .cval.cb1{color:var(--b1f);} .cval.cb2{color:var(--b2f);} .cval.cr{color:var(--amber);}
+  .cunit{font-size:.76rem;color:var(--muted);margin-top:5px;}
+
+  /* Chart */
+  .chart-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:24px;}
+  .sec-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .sec-title{font-size:.88rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;}
+  .legend{display:flex;gap:18px;margin-top:8px;flex-wrap:wrap;}
+  .leg{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--muted);}
+  .leg-dot{width:10px;height:10px;border-radius:50%;}
+  .range-tabs{display:flex;gap:6px;}
+  .rtab{padding:5px 13px;border-radius:6px;font-size:.73rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .2s;}
+  .rtab.on,.rtab:hover{background:var(--b1f);color:#000;border-color:var(--b1f);font-weight:600;}
+  .chart-wrap{position:relative;height:300px;}
+
+  /* Table */
+  .tbl-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;}
+  .tbl-scroll{overflow-x:auto;max-height:360px;overflow-y:auto;}
+  table{width:100%;border-collapse:collapse;font-size:.83rem;}
+  thead th{padding:9px 14px;text-align:left;font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;}
+  tbody tr{border-bottom:1px solid rgba(30,45,69,.5);transition:background .15s;}
+  tbody tr:hover{background:var(--surface2);}
+  tbody td{padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:.81rem;}
+  .b1{color:var(--b1f);font-weight:600;} .b2{color:var(--b2f);font-weight:600;} .tt{color:var(--total);font-weight:600;}
+  .cup{color:var(--danger);} .cdn{color:var(--success);} .csm{color:var(--muted);}
+  .empty{text-align:center;padding:50px;color:var(--muted);}
+  .empty .ico{font-size:2.5rem;margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon"><img src="icon.png" width="32px"></div>
+      <h1>停車場流量統計
+        <span>Parking · B1F / B2F · 每10分鐘更新</span>
+      </h1>
+    </div>
+    <div class="hdr-right">
+      <div class="status">
+        <div class="dot" id="dot"></div>
+        <span class="dot-text" id="dot-txt">載入中…</span>
+      </div>
+      <div class="badge">自動刷新 <b id="cd">60</b>s</div>
+      <div id="last-update">--</div>
+    </div>
+  </header>
+
+  <div class="floor-tabs">
+    <button class="ftab on" data-f="all" onclick="setFloor('all',this)">📊 全場總覽</button>
+    <button class="ftab"    data-f="B1F" onclick="setFloor('B1F',this)">🔵 B1F</button>
+    <button class="ftab"    data-f="B2F" onclick="setFloor('B2F',this)">🟣 B2F</button>
+  </div>
+
+  <div class="stats">
+    <div class="card ct"><div class="clabel">目前總車輛數</div><div class="cval ct" id="s-total">--</div><div class="cunit">輛 / 495 格</div></div>
+    <div class="card cb1"><div class="clabel">B1F 目前車輛</div><div class="cval cb1" id="s-b1f">--</div><div class="cunit">輛</div></div>
+    <div class="card cb2"><div class="clabel">B2F 目前車輛</div><div class="cval cb2" id="s-b2f">--</div><div class="cunit">輛</div></div>
+    <div class="card cr"><div class="clabel">目前滿場率</div><div class="cval cr" id="s-rate">--%</div><div class="cunit">（全場）</div></div>
+  </div>
+
+  <div class="chart-box">
+    <div class="sec-hdr">
+      <div>
+        <div class="sec-title">📈 車流趨勢折線圖</div>
+        <div class="legend">
+          <div class="leg"><div class="leg-dot" style="background:var(--total)"></div>全場合計</div>
+          <div class="leg"><div class="leg-dot" style="background:var(--b1f)"></div>B1F</div>
+          <div class="leg"><div class="leg-dot" style="background:var(--b2f)"></div>B2F</div>
+        </div>
+      </div>
+      <div class="range-tabs">
+        <button class="rtab on" onclick="setRange('all',this)">全部</button>
+        <button class="rtab" onclick="setRange(6,this)">6 小時</button>
+        <button class="rtab" onclick="setRange(3,this)">3 小時</button>
+        <button class="rtab" onclick="setRange(1,this)">1 小時</button>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+  </div>
+
+  <div class="tbl-box">
+    <div class="sec-hdr">
+      <div class="sec-title">📋 詳細資料記錄</div>
+      <span style="font-size:.78rem;color:var(--muted)" id="rec-cnt">共 0 筆</span>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead><tr><th>#</th><th>時間</th><th>B1F</th><th>B2F</th><th>合計</th><th>變化</th><th>滿場率</th></tr></thead>
+        <tbody id="tbody">
+          <tr><td colspan="7"><div class="empty"><div class="ico">🔄</div><p>資料載入中…</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+<script>
+const TOTAL = 495;
+let allData = [], chart = null, floor = 'all', range = 'all', cd = 60;
+
+// ── 資料來源：同 repo 的 parking_data.json ──────────────────
+async function fetchData() {
+  try {
+    // 加上時間戳防止瀏覽器快取
+    const res = await fetch(`parking_data.json?t=${Date.now()}`);
+    if (!res.ok) throw new Error();
+    allData = await res.json();
+    render();
+    setStatus('ok');
+  } catch {
+    setStatus('err');
+  }
+}
+
+function setStatus(s) {
+  const dot = document.getElementById('dot');
+  const txt = document.getElementById('dot-txt');
+  if (s === 'ok') {
+    dot.style.cssText = 'background:var(--success);box-shadow:0 0 8px var(--success)';
+    txt.textContent = '資料同步中';
+  } else {
+    dot.style.cssText = 'background:var(--danger);box-shadow:0 0 8px var(--danger)';
+    txt.textContent = '載入失敗';
+  }
+}
+
+function filtered() {
+  if (range === 'all') return allData;
+  const cut = new Date(Date.now() - Number(range) * 3600000);
+  return allData.filter(d => new Date(d.timestamp) >= cut);
+}
+
+function render() {
+  const data = filtered();
+  if (!data.length) return;
+  const last = allData[allData.length - 1];
+
+  // stats
+  document.getElementById('s-total').textContent = last.total;
+  document.getElementById('s-b1f').textContent   = last.B1F;
+  document.getElementById('s-b2f').textContent   = last.B2F;
+  document.getElementById('s-rate').textContent  = (last.total / TOTAL * 100).toFixed(1) + '%';
+  document.getElementById('last-update').textContent = '更新：' + last.timestamp;
+  document.getElementById('rec-cnt').textContent = `共 ${allData.length} 筆`;
+
+  renderChart(data);
+  renderTable();
+}
+
+function renderChart(data) {
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (chart) chart.destroy();
+  const labels = data.map(d => d.timestamp.slice(5, 16));
+  const pt = data.length <= 36 ? 3 : 0;
+
+  const ds = (label, key, color, show) => ({
+    label, data: data.map(d => d[key]),
+    borderColor: color, backgroundColor: color + '22',
+    borderWidth: 2, pointRadius: show ? pt : 0,
+    pointBackgroundColor: color, tension: 0.4, fill: show,
+  });
+
+  const showAll = floor === 'all';
+  const showB1  = floor === 'all' || floor === 'B1F';
+  const showB2  = floor === 'all' || floor === 'B2F';
+
+  const datasets = [
+    ...(showAll ? [ds('全場合計', 'total', '#34d399', true)] : []),
+    ...(showB1  ? [ds('B1F',     'B1F',   '#00d4ff', true)] : []),
+    ...(showB2  ? [ds('B2F',     'B2F',   '#a78bfa', true)] : []),
+  ];
+
+  chart = new Chart(ctx, {
+    type: 'line', data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#1a2234', titleColor: '#94a3b8', bodyColor: '#e2e8f0', borderColor: '#1e2d45', borderWidth: 1, padding: 12 }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(30,45,69,.6)' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 }, maxTicksLimit: 12, maxRotation: 30 } },
+        y: { grid: { color: 'rgba(30,45,69,.6)' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 } }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tbody');
+  const rev = [...allData].reverse();
+  if (!rev.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ico">🔄</div><p>資料載入中…</p></div></td></tr>'; return; }
+
+  tbody.innerHTML = rev.map((row, i) => {
+    const origIdx = allData.length - 1 - i;
+    const prev = allData[origIdx - 1];
+    let ch = '—', cc = 'csm';
+    if (prev) {
+      const d = row.total - prev.total;
+      if (d > 0) { ch = `▲ ${d}`; cc = 'cup'; }
+      else if (d < 0) { ch = `▼ ${Math.abs(d)}`; cc = 'cdn'; }
+    }
+    return `<tr>
+      <td style="color:var(--muted)">${origIdx + 1}</td>
+      <td>${row.timestamp}</td>
+      <td class="b1">${row.B1F}</td>
+      <td class="b2">${row.B2F}</td>
+      <td class="tt">${row.total}</td>
+      <td class="${cc}">${ch}</td>
+      <td style="color:var(--amber)">${(row.total/TOTAL*100).toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+function setFloor(f, btn) {
+  floor = f;
+  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+
+function setRange(r, btn) {
+  range = r;
+  document.querySelectorAll('.rtab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+
+// 倒數計時，每 60 秒重新讀取 JSON
+setInterval(() => {
+  cd--;
+  document.getElementById('cd').textContent = cd;
+  if (cd <= 0) { cd = 60; fetchData(); }
+}, 1000);
+
+fetchData();
+</script>
+</body>
+</html>
