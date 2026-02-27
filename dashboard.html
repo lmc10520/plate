@@ -39,9 +39,9 @@
   /* Floor tabs */
   .floor-tabs{display:flex;gap:8px;margin-bottom:20px;}
   .ftab{padding:8px 22px;border-radius:8px;font-size:.85rem;font-weight:600;border:2px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .2s;letter-spacing:.04em;}
-  .ftab[data-f="all"].on {border-color:var(--total);color:var(--total);background:rgba(52,211,153,.08);}
-  .ftab[data-f="B1F"].on {border-color:var(--b1f);color:var(--b1f);background:rgba(0,212,255,.08);}
-  .ftab[data-f="B2F"].on {border-color:var(--b2f);color:var(--b2f);background:rgba(167,139,250,.08);}
+  .ftab[data-f="all"].on{border-color:var(--total);color:var(--total);background:rgba(52,211,153,.08);}
+  .ftab[data-f="B1F"].on{border-color:var(--b1f);color:var(--b1f);background:rgba(0,212,255,.08);}
+  .ftab[data-f="B2F"].on{border-color:var(--b2f);color:var(--b2f);background:rgba(167,139,250,.08);}
 
   /* Stats */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
@@ -66,7 +66,7 @@
   .legend{display:flex;gap:18px;margin-top:8px;flex-wrap:wrap;}
   .leg{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--muted);}
   .leg-dot{width:10px;height:10px;border-radius:50%;}
-  
+
   /* ── 時間篩選器 ── */
   .filter-panel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 
@@ -74,7 +74,6 @@
   .range-tabs{display:flex;gap:6px;flex-wrap:wrap;}
   .rtab{padding:5px 13px;border-radius:6px;font-size:.73rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .2s;}
   .rtab.on,.rtab:hover{background:var(--b1f);color:#000;border-color:var(--b1f);font-weight:600;}
-  .chart-wrap{position:relative;height:300px;}
 
   /* 分隔線 */
   .filter-divider{width:1px;height:24px;background:var(--border);}
@@ -109,7 +108,7 @@
   }
 
   .chart-wrap{position:relative;height:300px;margin-top:16px;}
-  
+
   /* Table */
   .tbl-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;}
   .tbl-scroll{overflow-x:auto;max-height:360px;overflow-y:auto;}
