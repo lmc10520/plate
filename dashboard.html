@@ -121,6 +121,21 @@
   .cup{color:var(--danger);} .cdn{color:var(--success);} .csm{color:var(--muted);}
   .empty{text-align:center;padding:50px;color:var(--muted);}
   .empty .ico{font-size:2.5rem;margin-bottom:10px;}
+  
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .sec-hdr {
+    margin-bottom: 10px;
+  }
 </style>
 </head>
 <body>
@@ -158,39 +173,32 @@
 
   <div class="chart-box">
     <div class="sec-hdr">
-      <div>
-        <div class="sec-title">📈 車流趨勢折線圖</div>
-        <div class="legend">
-          <div class="leg"><div class="leg-dot" style="background:var(--total)"></div>全場合計</div>
-          <div class="leg"><div class="leg-dot" style="background:var(--b1f)"></div>B1F</div>
-          <div class="leg"><div class="leg-dot" style="background:var(--b2f)"></div>B2F</div>
-        </div>
+      <div class="sec-title">📈 車流趨勢折線圖</div>
+      <div class="legend">
+        <div class="leg"><div class="leg-dot" style="background:var(--total)"></div>全場合計</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--b1f)"></div>B1F</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--b2f)"></div>B2F</div>
       </div>
-      <!-- ── 時間篩選器 ── -->
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-
-        <!-- 第一排：快速按鈕 -->
-        <div class="filter-panel">
-          <div class="range-tabs">
-            <button class="rtab on" onclick="setQuick('all',this)">全部</button>
-            <button class="rtab"    onclick="setQuick(6,this)">6 小時</button>
-            <button class="rtab"    onclick="setQuick(3,this)">3 小時</button>
-            <button class="rtab"    onclick="setQuick(1,this)">1 小時</button>
-          </div>
-        </div>
-
-        <!-- 第二排：自訂區間 -->
-        <div class="custom-range">
-          <label>自訂區間</label>
-          <input type="datetime-local" id="dt-start" class="dt-input" title="開始時間">
-          <span style="color:var(--muted);font-size:.8rem;">→</span>
-          <input type="datetime-local" id="dt-end"   class="dt-input" title="結束時間">
-          <button class="apply-btn" onclick="applyCustomRange()">套用</button>
-          <button class="apply-btn" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="clearCustomRange()">清除</button>
-        </div>
-
-        <!-- 目前篩選提示 -->
-        <div class="range-hint" id="range-hint">顯示全部資料</div>
+    </div>
+    
+    <!-- 篩選器獨立一排 -->
+    <div class="filter-row">
+      <div class="range-tabs">
+        <button class="rtab on" onclick="setQuick('all',this)">全部</button>
+        <button class="rtab" onclick="setQuick(6,this)">6 小時</button>
+        <button class="rtab" onclick="setQuick(3,this)">3 小時</button>
+        <button class="rtab" onclick="setQuick(1,this)">1 小時</button>
+      </div>
+      <div class="filter-divider"></div>
+      <div class="custom-range">
+        <label>自訂區間</label>
+        <input type="datetime-local" id="dt-start" class="dt-input">
+        <span style="color:var(--muted)">→</span>
+        <input type="datetime-local" id="dt-end" class="dt-input">
+        <button class="apply-btn" onclick="applyCustomRange()">套用</button>
+        <button class="apply-btn" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="clearCustomRange()">清除</button>
+      </div>
+      <div class="range-hint" id="range-hint">顯示全部資料</div>
     </div>
     <div class="chart-wrap"><canvas id="chart"></canvas></div>
   </div>
