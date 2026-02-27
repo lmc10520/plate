@@ -61,16 +61,55 @@
 
   /* Chart */
   .chart-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:24px;}
-  .sec-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .sec-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;}
   .sec-title{font-size:.88rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;}
   .legend{display:flex;gap:18px;margin-top:8px;flex-wrap:wrap;}
   .leg{display:flex;align-items:center;gap:6px;font-size:.76rem;color:var(--muted);}
   .leg-dot{width:10px;height:10px;border-radius:50%;}
-  .range-tabs{display:flex;gap:6px;}
+  
+  /* ── 時間篩選器 ── */
+  .filter-panel{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+  /* 快速按鈕 */
+  .range-tabs{display:flex;gap:6px;flex-wrap:wrap;}
   .rtab{padding:5px 13px;border-radius:6px;font-size:.73rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .2s;}
   .rtab.on,.rtab:hover{background:var(--b1f);color:#000;border-color:var(--b1f);font-weight:600;}
   .chart-wrap{position:relative;height:300px;}
 
+  /* 分隔線 */
+  .filter-divider{width:1px;height:24px;background:var(--border);}
+
+  /* 自訂區間容器 */
+  .custom-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .custom-range label{font-size:.72rem;color:var(--muted);white-space:nowrap;}
+
+  /* datetime-local input 樣式 */
+  .dt-input{
+    background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+    color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.78rem;
+    padding:6px 10px;cursor:pointer;outline:none;transition:border-color .2s;
+    color-scheme:dark;
+  }
+  .dt-input:focus,.dt-input:hover{border-color:var(--b1f);}
+
+  /* 套用按鈕 */
+  .apply-btn{
+    padding:6px 16px;border-radius:8px;font-size:.78rem;font-weight:600;
+    background:linear-gradient(135deg,var(--b1f),var(--b2f));color:#000;
+    border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+    transition:opacity .2s;white-space:nowrap;
+  }
+  .apply-btn:hover{opacity:.85;}
+
+  /* 目前篩選範圍提示 */
+  .range-hint{
+    font-size:.72rem;color:var(--amber);font-family:'JetBrains Mono',monospace;
+    background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
+    border-radius:6px;padding:4px 10px;white-space:nowrap;
+  }
+
+  .chart-wrap{position:relative;height:300px;margin-top:16px;}
+  
   /* Table */
   .tbl-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;}
   .tbl-scroll{overflow-x:auto;max-height:360px;overflow-y:auto;}
@@ -128,12 +167,31 @@
           <div class="leg"><div class="leg-dot" style="background:var(--b2f)"></div>B2F</div>
         </div>
       </div>
-      <div class="range-tabs">
-        <button class="rtab on" onclick="setRange('all',this)">全部</button>
-        <button class="rtab" onclick="setRange(6,this)">6 小時</button>
-        <button class="rtab" onclick="setRange(3,this)">3 小時</button>
-        <button class="rtab" onclick="setRange(1,this)">1 小時</button>
-      </div>
+      <!-- ── 時間篩選器 ── -->
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+
+        <!-- 第一排：快速按鈕 -->
+        <div class="filter-panel">
+          <div class="range-tabs">
+            <button class="rtab on" onclick="setQuick('all',this)">全部</button>
+            <button class="rtab"    onclick="setQuick(6,this)">6 小時</button>
+            <button class="rtab"    onclick="setQuick(3,this)">3 小時</button>
+            <button class="rtab"    onclick="setQuick(1,this)">1 小時</button>
+          </div>
+        </div>
+
+        <!-- 第二排：自訂區間 -->
+        <div class="custom-range">
+          <label>自訂區間</label>
+          <input type="datetime-local" id="dt-start" class="dt-input" title="開始時間">
+          <span style="color:var(--muted);font-size:.8rem;">→</span>
+          <input type="datetime-local" id="dt-end"   class="dt-input" title="結束時間">
+          <button class="apply-btn" onclick="applyCustomRange()">套用</button>
+          <button class="apply-btn" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="clearCustomRange()">清除</button>
+        </div>
+
+        <!-- 目前篩選提示 -->
+        <div class="range-hint" id="range-hint">顯示全部資料</div>
     </div>
     <div class="chart-wrap"><canvas id="chart"></canvas></div>
   </div>
@@ -152,19 +210,242 @@
       </table>
     </div>
   </div>
-
+    <div>
+        <p style="font-size: 0.5em; text-align: center">
+            <a href="dashboard.html" style="text-decoration: none; color: white;">
+            本資料為公益性質之使用，非營利且不涉及任何商業行為。如有涉及著作權之資料來源及其內容，皆屬原權利人所有，所有資訊皆源自網路上搜尋之開放資料進行統計呈現。
+            </a>
+        </p>
+    </div>
 </div>
 <script>
 const TOTAL = 495;
-let allData = [], chart = null, floor = 'all', range = 'all', cd = 60;
+let allData = [], chart = null;
+let floor = 'all';
+let quickHours = 'all';   // 快速按鈕選的範圍
+let customStart = null;   // 自訂開始時間（Date 物件）
+let customEnd   = null;   // 自訂結束時間（Date 物件）
+let cdTimer = 60;
 
-// ── 資料來源：同 repo 的 parking_data.json ──────────────────
+// ── 資料篩選 ──────────────────────────────────────
+function getFiltered() {
+  // 自訂區間優先
+  if (customStart || customEnd) {
+    return allData.filter(d => {
+      const t = new Date(d.timestamp);
+      if (customStart && t < customStart) return false;
+      if (customEnd   && t > customEnd)   return false;
+      return true;
+    });
+  }
+  // 快速按鈕
+  if (quickHours === 'all') return allData;
+  const cut = new Date(Date.now() - Number(quickHours) * 3600000);
+  return allData.filter(d => new Date(d.timestamp) >= cut);
+}
+
+// ── 快速按鈕 ──────────────────────────────────────
+function setQuick(hours, btn) {
+  quickHours  = hours;
+  customStart = null;
+  customEnd   = null;
+  document.getElementById('dt-start').value = '';
+  document.getElementById('dt-end').value   = '';
+  document.querySelectorAll('.rtab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  updateHint();
+  render();
+}
+
+// ── 自訂區間套用 ────────────────────────────────
+function applyCustomRange() {
+  const s = document.getElementById('dt-start').value;
+  const e = document.getElementById('dt-end').value;
+
+  if (!s && !e) { alert('請至少輸入開始或結束時間'); return; }
+
+  customStart = s ? new Date(s) : null;
+  customEnd   = e ? new Date(e) : null;
+
+  if (customStart && customEnd && customStart > customEnd) {
+    alert('開始時間不能晚於結束時間');
+    return;
+  }
+
+  // 取消快速按鈕選取狀態
+  quickHours = null;
+  document.querySelectorAll('.rtab').forEach(b => b.classList.remove('on'));
+  updateHint();
+  render();
+}
+
+// ── 清除自訂區間 ────────────────────────────────
+function clearCustomRange() {
+  customStart = null;
+  customEnd   = null;
+  document.getElementById('dt-start').value = '';
+  document.getElementById('dt-end').value   = '';
+  // 恢復「全部」
+  quickHours = 'all';
+  document.querySelectorAll('.rtab').forEach((b, i) => {
+    if (i === 0) b.classList.add('on');
+    else b.classList.remove('on');
+  });
+  updateHint();
+  render();
+}
+
+// ── 提示文字更新 ────────────────────────────────
+function updateHint() {
+  const hint = document.getElementById('range-hint');
+  if (customStart || customEnd) {
+    const s = customStart ? customStart.toLocaleString('zh-TW',{hour12:false}).slice(0,16) : '最早';
+    const e = customEnd   ? customEnd.toLocaleString('zh-TW',{hour12:false}).slice(0,16)   : '最新';
+    hint.textContent = `${s}  →  ${e}`;
+  } else if (quickHours === 'all') {
+    hint.textContent = '顯示全部資料';
+  } else {
+    hint.textContent = `最近 ${quickHours} 小時`;
+  }
+}
+
+// ── 樓層切換 ────────────────────────────────────
+function setFloor(f, btn) {
+  floor = f;
+  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  render();
+}
+
+// ── 主渲染 ──────────────────────────────────────
+function render() {
+  if (!allData.length) return;
+  const last = allData[allData.length - 1];
+
+  // 統計卡片永遠顯示最新值
+  document.getElementById('s-total').textContent = last.total;
+  document.getElementById('s-b1f').textContent   = last.B1F;
+  document.getElementById('s-b2f').textContent   = last.B2F;
+  document.getElementById('s-rate').textContent  = (last.total / TOTAL * 100).toFixed(1) + '%';
+  document.getElementById('last-update').textContent = '更新：' + last.timestamp;
+  document.getElementById('rec-cnt').textContent = `共 ${allData.length} 筆`;
+
+  const data = getFiltered();
+  renderChart(data);
+  renderTable();
+}
+
+// ── 折線圖 ──────────────────────────────────────
+function renderChart(data) {
+  const ctx = document.getElementById('chart').getContext('2d');
+  if (chart) chart.destroy();
+
+  if (!data.length) {
+    chart = null;
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = '#64748b';
+    ctx.font = '14px Noto Sans TC';
+    ctx.textAlign = 'center';
+    ctx.fillText('此區間無資料', ctx.canvas.width / 2, 150);
+    return;
+  }
+
+  const labels = data.map(d => d.timestamp.slice(5, 16));
+  const pt = data.length <= 36 ? 3 : 0;
+
+  const ds = (label, key, color) => ({
+    label, data: data.map(d => d[key]),
+    borderColor: color, backgroundColor: color + '22',
+    borderWidth: 2, pointRadius: pt,
+    pointBackgroundColor: color, tension: 0.4, fill: true,
+  });
+
+  const showAll = floor === 'all';
+  const showB1  = floor === 'all' || floor === 'B1F';
+  const showB2  = floor === 'all' || floor === 'B2F';
+
+  const datasets = [
+    ...(showAll ? [ds('全場合計', 'total', '#34d399')] : []),
+    ...(showB1  ? [ds('B1F',     'B1F',   '#00d4ff')] : []),
+    ...(showB2  ? [ds('B2F',     'B2F',   '#a78bfa')] : []),
+  ];
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a2234', titleColor: '#94a3b8',
+          bodyColor: '#e2e8f0', borderColor: '#1e2d45', borderWidth: 1, padding: 12
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(30,45,69,.6)' },
+          ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 }, maxTicksLimit: 12, maxRotation: 30 }
+        },
+        y: {
+          grid: { color: 'rgba(30,45,69,.6)' },
+          ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 } },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+// ── 資料表格 ────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('tbody');
+  const rev = [...allData].reverse();
+  if (!rev.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ico">🔄</div><p>資料載入中…</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rev.map((row, i) => {
+    const origIdx = allData.length - 1 - i;
+    const prev = allData[origIdx - 1];
+    let ch = '—', cc = 'csm';
+    if (prev) {
+      const d = row.total - prev.total;
+      if (d > 0)      { ch = `▲ ${d}`;          cc = 'cup'; }
+      else if (d < 0) { ch = `▼ ${Math.abs(d)}`; cc = 'cdn'; }
+    }
+    return `<tr>
+      <td style="color:var(--muted)">${origIdx + 1}</td>
+      <td>${row.timestamp}</td>
+      <td class="b1">${row.B1F}</td>
+      <td class="b2">${row.B2F}</td>
+      <td class="tt">${row.total}</td>
+      <td class="${cc}">${ch}</td>
+      <td style="color:var(--amber)">${(row.total/TOTAL*100).toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── 初始化 datetime-local 預設值 ───────────────
+function initDateInputs() {
+  if (!allData.length) return;
+  // 預設顯示資料的最早與最晚時間，方便使用者知道可選範圍
+  const first = allData[0].timestamp.replace(' ', 'T').slice(0, 16);
+  const last  = allData[allData.length - 1].timestamp.replace(' ', 'T').slice(0, 16);
+  document.getElementById('dt-start').min = first;
+  document.getElementById('dt-start').max = last;
+  document.getElementById('dt-end').min   = first;
+  document.getElementById('dt-end').max   = last;
+}
+
+// ── 資料載入 ────────────────────────────────────
 async function fetchData() {
   try {
-    // 加上時間戳防止瀏覽器快取
     const res = await fetch(`parking_data.json?t=${Date.now()}`);
     if (!res.ok) throw new Error();
     allData = await res.json();
+    initDateInputs();
     render();
     setStatus('ok');
   } catch {
@@ -184,114 +465,11 @@ function setStatus(s) {
   }
 }
 
-function filtered() {
-  if (range === 'all') return allData;
-  const cut = new Date(Date.now() - Number(range) * 3600000);
-  return allData.filter(d => new Date(d.timestamp) >= cut);
-}
-
-function render() {
-  const data = filtered();
-  if (!data.length) return;
-  const last = allData[allData.length - 1];
-
-  // stats
-  document.getElementById('s-total').textContent = last.total;
-  document.getElementById('s-b1f').textContent   = last.B1F;
-  document.getElementById('s-b2f').textContent   = last.B2F;
-  document.getElementById('s-rate').textContent  = (last.total / TOTAL * 100).toFixed(1) + '%';
-  document.getElementById('last-update').textContent = '更新：' + last.timestamp;
-  document.getElementById('rec-cnt').textContent = `共 ${allData.length} 筆`;
-
-  renderChart(data);
-  renderTable();
-}
-
-function renderChart(data) {
-  const ctx = document.getElementById('chart').getContext('2d');
-  if (chart) chart.destroy();
-  const labels = data.map(d => d.timestamp.slice(5, 16));
-  const pt = data.length <= 36 ? 3 : 0;
-
-  const ds = (label, key, color, show) => ({
-    label, data: data.map(d => d[key]),
-    borderColor: color, backgroundColor: color + '22',
-    borderWidth: 2, pointRadius: show ? pt : 0,
-    pointBackgroundColor: color, tension: 0.4, fill: show,
-  });
-
-  const showAll = floor === 'all';
-  const showB1  = floor === 'all' || floor === 'B1F';
-  const showB2  = floor === 'all' || floor === 'B2F';
-
-  const datasets = [
-    ...(showAll ? [ds('全場合計', 'total', '#34d399', true)] : []),
-    ...(showB1  ? [ds('B1F',     'B1F',   '#00d4ff', true)] : []),
-    ...(showB2  ? [ds('B2F',     'B2F',   '#a78bfa', true)] : []),
-  ];
-
-  chart = new Chart(ctx, {
-    type: 'line', data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: { backgroundColor: '#1a2234', titleColor: '#94a3b8', bodyColor: '#e2e8f0', borderColor: '#1e2d45', borderWidth: 1, padding: 12 }
-      },
-      scales: {
-        x: { grid: { color: 'rgba(30,45,69,.6)' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 }, maxTicksLimit: 12, maxRotation: 30 } },
-        y: { grid: { color: 'rgba(30,45,69,.6)' }, ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 } }, beginAtZero: true }
-      }
-    }
-  });
-}
-
-function renderTable() {
-  const tbody = document.getElementById('tbody');
-  const rev = [...allData].reverse();
-  if (!rev.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ico">🔄</div><p>資料載入中…</p></div></td></tr>'; return; }
-
-  tbody.innerHTML = rev.map((row, i) => {
-    const origIdx = allData.length - 1 - i;
-    const prev = allData[origIdx - 1];
-    let ch = '—', cc = 'csm';
-    if (prev) {
-      const d = row.total - prev.total;
-      if (d > 0) { ch = `▲ ${d}`; cc = 'cup'; }
-      else if (d < 0) { ch = `▼ ${Math.abs(d)}`; cc = 'cdn'; }
-    }
-    return `<tr>
-      <td style="color:var(--muted)">${origIdx + 1}</td>
-      <td>${row.timestamp}</td>
-      <td class="b1">${row.B1F}</td>
-      <td class="b2">${row.B2F}</td>
-      <td class="tt">${row.total}</td>
-      <td class="${cc}">${ch}</td>
-      <td style="color:var(--amber)">${(row.total/TOTAL*100).toFixed(1)}%</td>
-    </tr>`;
-  }).join('');
-}
-
-function setFloor(f, btn) {
-  floor = f;
-  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  render();
-}
-
-function setRange(r, btn) {
-  range = r;
-  document.querySelectorAll('.rtab').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  render();
-}
-
-// 倒數計時，每 60 秒重新讀取 JSON
+// 倒數計時，每 60 秒重新讀取
 setInterval(() => {
-  cd--;
-  document.getElementById('cd').textContent = cd;
-  if (cd <= 0) { cd = 60; fetchData(); }
+  cdTimer--;
+  document.getElementById('cd').textContent = cdTimer;
+  if (cdTimer <= 0) { cdTimer = 60; fetchData(); }
 }, 1000);
 
 fetchData();
