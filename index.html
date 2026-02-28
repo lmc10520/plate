@@ -47,22 +47,55 @@
         aspect-ratio: 1 / 1; 
     }
     /* 種類統計樣式 */
-    .type-stats { 
-        display: flex; justify-content: space-around; 
-        background: #f9f9f9; 
-        padding: 15px; 
-        border-radius: 10px; 
-        margin-bottom: 30px; 
-        border: 1px solid #eee; 
+    .type-stats-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 30px;
     }
+
+    .type-stats {
+        display: flex;
+        align-items: center;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    .floor-label {
+        background: #444;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 5px;
+        font-weight: bold;
+        margin-right: 15px;
+        min-width: 40px;
+        text-align: center;
+    }
+
+    /* B1 B2 不同顏色提示 */
+    .floor-b1 { border-left: 8px solid #ff6384; }
+    .floor-b2 { border-left: 8px solid #ff9f40; }
+
     .type-item {
-        text-align: center; flex: 1; 
+        flex: 1;
+        text-align: center;
+        border-right: 1px solid #eee;
     }
+
+    .type-item:last-child { border-right: none; }
+
     .type-item span {
-        display: block; font-size: 24px; font-weight: bold; color: #2e7d32; 
+        display: block;
+        font-size: 22px;
+        font-weight: bold;
+        color: #2e7d32;
     }
-    .type-label { 
-        font-size: 14px; color: #666; 
+
+    .type-label {
+        font-size: 12px;
+        color: #777;
     }
 
     /* 手機版排版優化 (螢幕小於 768px 時執行) */
@@ -77,8 +110,12 @@
             margin-bottom: 100px;
         }
         .type-stats {
-            flex-direction: column; /* 種類統計也改為上下排列 */
-            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .floor-label {
+            width: 100%;
+            margin-bottom: 10px;
+            margin-right: 0;
         }
         .type-item {
             border: none !important;
@@ -140,19 +177,39 @@
         </div>
     </div>
 
-    <!-- 車格種類詳細統計 (不分樓層) -->
-    <div class="type-stats">
-        <div class="type-item">
-            <div class="type-label">身障車輛</div>
-            <span id="stat-disabled">0</span>
+    <!-- 車格種類詳細統計 (分樓層顯示) -->
+    <div class="type-stats-container">
+        <!-- B2F 特殊車位 -->
+        <div class="type-stats floor-b2">
+            <div class="floor-label">B2F</div>
+            <div class="type-item">
+                <div class="type-label">身障車輛(18)</div>
+                <span id="stat-b2-disabled">0</span>
+            </div>
+            <div class="type-item">
+                <div class="type-label">親子車輛(11)</div>
+                <span id="stat-b2-parent">0</span>
+            </div>
+            <div class="type-item">
+                <div class="type-label">綠能/電動(0)</div>
+                <span id="stat-b2-ev">0</span>
+            </div>
         </div>
-        <div class="type-item" style="border-left: 1px solid #ddd; border-right: 1px solid #ddd;">
-            <div class="type-label">親子車輛</div>
-            <span id="stat-parent">0</span>
-        </div>
-        <div class="type-item">
-            <div class="type-label">綠能/電動車輛</div>
-            <span id="stat-ev">0</span>
+        <!-- B1F 特殊車位 -->
+        <div class="type-stats floor-b1">
+            <div class="floor-label">B1F</div>
+            <div class="type-item">
+                <div class="type-label">身障車輛(5)</div>
+                <span id="stat-b1-disabled">0</span>
+            </div>
+            <div class="type-item">
+                <div class="type-label">親子車輛(4)</div>
+                <span id="stat-b1-parent">0</span>
+            </div>
+            <div class="type-item">
+                <div class="type-label">綠能/電動(0)</div>
+                <span id="stat-b1-ev">0</span>
+            </div>
         </div>
     </div>
 
@@ -223,18 +280,28 @@
                 item.Floor === 'B2F' && item.LicensePlate && item.LicensePlate !== "NONE"
             ).length;
 
-            // 特殊車格統計 (Type)
-            const disabledOcc = allData.filter(item => item.Type.includes("身障") && item.LicensePlate !== "NONE").length;
-            const parentOcc = allData.filter(item => item.Type.includes("親子") && item.LicensePlate !== "NONE").length;
-            const evOcc = allData.filter(item => (item.Type.includes("電動") || item.Type.includes("綠能")) && item.LicensePlate !== "NONE").length;
-
-            // 更新 UI
-            updateChart(chartB1, occupiedB1, TOTAL_B1, 'infoB1');
-            updateChart(chartB2, occupiedB2, TOTAL_B2, 'infoB2');
+            // --- B1F 特殊車格統計 ---
+            const b1Data = allData.filter(item => item.Floor === 'B1F');
+            const b1Disabled = b1Data.filter(item => item.Type.includes("身障") && item.LicensePlate !== "NONE").length;
+            const b1Parent = b1Data.filter(item => item.Type.includes("親子") && item.LicensePlate !== "NONE").length;
+            const b1EV = b1Data.filter(item => (item.Type.includes("電動") || item.Type.includes("綠能")) && item.LicensePlate !== "NONE").length;
+    
+            // --- B2F 特殊車格統計 ---
+            const b2Data = allData.filter(item => item.Floor === 'B2F');
+            const b2Disabled = b2Data.filter(item => item.Type.includes("身障") && item.LicensePlate !== "NONE").length;
+            const b2Parent = b2Data.filter(item => item.Type.includes("親子") && item.LicensePlate !== "NONE").length;
+            const b2EV = b2Data.filter(item => (item.Type.includes("電動") || item.Type.includes("綠能")) && item.LicensePlate !== "NONE").length;
+    
+            // --- 更新 UI 文字 ---
+            // B1
+            document.getElementById('stat-b1-disabled').innerText = b1Disabled;
+            document.getElementById('stat-b1-parent').innerText = b1Parent;
+            document.getElementById('stat-b1-ev').innerText = b1EV;
             
-            document.getElementById('stat-disabled').innerText = disabledOcc;
-            document.getElementById('stat-parent').innerText = parentOcc;
-            document.getElementById('stat-ev').innerText = evOcc;
+            // B2
+            document.getElementById('stat-b2-disabled').innerText = b2Disabled;
+            document.getElementById('stat-b2-parent').innerText = b2Parent;
+            document.getElementById('stat-b2-ev').innerText = b2EV;
 
         } catch (error) {
             console.error("更新失敗:", error);
@@ -309,6 +376,7 @@
 
 </body>
 </html>
+
 
 
 
