@@ -158,26 +158,25 @@
     </div>
   </header>
 
-  <div class="floor-tabs">
-    <button class="ftab on" data-f="all" onclick="setFloor('all',this)">📊 全場總覽</button>
-    <button class="ftab"    data-f="B1F" onclick="setFloor('B1F',this)">🔵 B1F</button>
-    <button class="ftab"    data-f="B2F" onclick="setFloor('B2F',this)">🟣 B2F</button>
-  </div>
-
   <div class="stats">
-    <div class="card ct"><div class="clabel">目前總車輛數</div><div class="cval ct" id="s-total">--</div><div class="cunit">輛 / 495 格</div></div>
-    <div class="card cb1"><div class="clabel">B1F 目前車輛</div><div class="cval cb1" id="s-b1f">--</div><div class="cunit">輛</div></div>
-    <div class="card cb2"><div class="clabel">B2F 目前車輛</div><div class="cval cb2" id="s-b2f">--</div><div class="cunit">輛</div></div>
+    <div class="card ct"><div class="clabel">目前總車輛數</div><div class="cval ct" id="s-total">--</div><div class="cunit">輛 / 716 格</div></div>
+    <div class="card cb2"><div class="clabel">B2F 目前車輛</div><div class="cval cb2" id="s-b2f">--</div><div class="cunit">輛 / 495 格</div></div>
+    <div class="card cb1"><div class="clabel">B1F 目前車輛</div><div class="cval cb1" id="s-b1f">--</div><div class="cunit">輛 / 221 格</div></div>
     <div class="card cr"><div class="clabel">目前滿場率</div><div class="cval cr" id="s-rate">--%</div><div class="cunit">（全場）</div></div>
   </div>
-
+  
+  <div class="floor-tabs">
+    <button class="ftab on" data-f="all" onclick="setFloor('all',this)">📊 全場總覽</button>
+    <button class="ftab"    data-f="B2F" onclick="setFloor('B2F',this)">🟣 B2F</button>
+    <button class="ftab"    data-f="B1F" onclick="setFloor('B1F',this)">🔵 B1F</button>
+  </div>
   <div class="chart-box">
     <div class="sec-hdr">
       <div class="sec-title">📈 車流趨勢折線圖</div>
       <div class="legend">
         <div class="leg"><div class="leg-dot" style="background:var(--total)"></div>全場合計</div>
-        <div class="leg"><div class="leg-dot" style="background:var(--b1f)"></div>B1F</div>
         <div class="leg"><div class="leg-dot" style="background:var(--b2f)"></div>B2F</div>
+        <div class="leg"><div class="leg-dot" style="background:var(--b1f)"></div>B1F</div>
       </div>
     </div>
     
@@ -226,7 +225,7 @@
     </div>
 </div>
 <script>
-const TOTAL = 495;
+const TOTAL = 716;
 let allData = [], chart = null;
 let floor = 'all';
 let quickHours = 'all';   // 快速按鈕選的範圍
