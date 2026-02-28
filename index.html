@@ -22,7 +22,7 @@
         color: var(--text-color);
     }
     /* 圖表容器：預設為橫向排列 */
-    .charts-container, .search-section {
+    .charts-container{
         background: var(--card-bg);
         border: 1px solid #e3e6f0;
         border-radius: var(--border-radius);
@@ -34,9 +34,24 @@
         gap: 20px;
         display: flex;
         flex-wrap: wrap; /* 允許換行 */
-        justify-content: center; /* 水平致中 */
+        justify-content: center; /* 水平置中 */
+        min-height: 624px; /* 設定一個合理的最小高度給 Safari 讀取*/
     }
-
+    .search-section {
+        background: var(--card-bg);
+        border: 1px solid #e3e6f0;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        padding: 20px;
+        margin-bottom: 24px;
+        min-height: 100%; /* 讓內容撐滿螢幕 */
+        flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
+        gap: 20px;
+        display: block;
+        flex-wrap: wrap; /* 允許換行 */
+        justify-content: center; /* 水平置中 */
+    }
+       
     h1 {
         text-align: center;
     }
@@ -223,7 +238,7 @@
     <!-- 搜尋區 -->
     <div class="search-section">
         <h2>停車位置檢索</h2>
-        <input type="text" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="請輸入車牌「數字」" onkeyup="if(event.keyCode==13) searchCar()">
+        <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="請輸入車牌「所有數字」" onkeyup="if(event.keyCode==13) searchCar()">
         <button onclick="searchCar()">搜尋</button>
         <div id="result"></div>
     </div>
@@ -390,6 +405,7 @@
 
 </body>
 </html>
+
 
 
 
