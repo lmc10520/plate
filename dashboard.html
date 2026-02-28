@@ -473,11 +473,11 @@ function setStatus(s) {
   }
 }
 
-// 倒數計時，每 60 秒重新讀取
+// 倒數計時，每 600 秒重新讀取
 setInterval(() => {
   cdTimer--;
   document.getElementById('cd').textContent = cdTimer;
-  if (cdTimer <= 0) { cdTimer = 60; fetchData(); }
+  if (cdTimer <= 0) { cdTimer = 600; fetchData(); }
 }, 1000);
 
 fetchData();
