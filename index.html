@@ -13,7 +13,7 @@
         --primary-color: #ff6263;    
         --bg-color: #f8f9fc;         
         --card-bg: #ffffff;          
-        --text-color: #5a5c69;       
+        --text-color: #221714;       
         --border-radius: 0.75rem;    
         --shadow: 0 .15rem 1.75rem 0 rgba(58,59,69,.15);
     }
@@ -36,7 +36,7 @@
 
     h1 {
         text-align: center;
-        color: #4e73df;
+        color: #ff6263;
         margin: 20px 0;
     }
 
@@ -116,7 +116,7 @@
     }
 
     .floor-label {
-        background: #4e73df;
+        background: #ff6263;
         color: white;
         padding: 5px 20px;
         border-radius: 20px;
@@ -192,7 +192,7 @@
             </div>
             <div id="infoB2" class="chart-info">---</div>
             <div class="type-stats-container">
-                <div class="type-stats" style="border-left: 5px solid #ff9f40;">
+                <div class="type-stats" style="border-left: 5px solid #ff6263;">
                     <div class="type-item">
                         <div class="type-label">身障(18)</div>
                         <span id="stat-b2-disabled">0</span>
@@ -217,7 +217,7 @@
             </div>
             <div id="infoB1" class="chart-info">---</div>
             <div class="type-stats-container">
-                <div class="type-stats" style="border-left: 5px solid #ff6384;">
+                <div class="type-stats" style="border-left: 5px solid #ff6263;">
                     <div class="type-item">
                         <div class="type-label">身障(5)</div>
                         <span id="stat-b1-disabled">0</span>
@@ -270,8 +270,8 @@
             }
         });
 
-        chartB1 = new Chart(document.getElementById('chartB1'), config('#ff6384', '#eaecf4'));
-        chartB2 = new Chart(document.getElementById('chartB2'), config('#ff9f40', '#eaecf4'));
+        chartB1 = new Chart(document.getElementById('chartB1'), config('#ff6263', '#eaecf4'));
+        chartB2 = new Chart(document.getElementById('chartB2'), config('#ff6263', '#eaecf4'));
     }
 
     async function updateDashboard() {
@@ -332,4 +332,5 @@
 </script>
 </body>
 </html>
+
 
