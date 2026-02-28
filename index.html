@@ -32,7 +32,7 @@
         min-height: 100%; /* 讓內容撐滿螢幕 */
         flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
         gap: 20px;
-        display: flex;
+        display: block;
         flex-wrap: wrap; /* 允許換行 */
         justify-content: center; /* 水平置中 */
         min-height: 588px; /* 設定一個合理的最小高度給 Safari 讀取*/
@@ -156,7 +156,7 @@
         color: white;
         padding: 10px 20px;
         transition: background 0.3s ease;
-        font-size: 2em;
+        font-size: 1.5em;
     }
     
     .search-section button:hover {
@@ -168,7 +168,7 @@
         border: 1px solid #d1d3e2;
         border-radius: 5px;
         padding: 10px;
-        font-size: 2em;
+        font-size: 1.5em;
     }
         
     /* 搜尋區樣式 */
@@ -243,7 +243,7 @@
 
     <!-- 搜尋區 -->
     <div class="search-section">
-        <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌「所有數字」檢索位置" onkeyup="if(event.keyCode==13) searchCar()">
+        <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌所有數字找位置" onkeyup="if(event.keyCode==13) searchCar()">
         <button onclick="searchCar()">搜尋</button>
         <div id="result"></div>
     </div>
@@ -381,10 +381,8 @@
             matches.forEach(car => {
                 htmlResult += `
                     <div style="margin-bottom: 15px;">
-                        車牌：${car.LicensePlate}<br>
                         位置：<span style="color: #ff6263;">${car.ParkingNumber}</span><br>
-                        樓層：${car.Floor}</span><br>
-                        種類：${car.Type}
+                        車牌：${car.LicensePlate} ． 樓層：${car.Floor} ． 種類：${car.Type}
                     </div>
                 `;
             });
@@ -411,6 +409,7 @@
 
 </body>
 </html>
+
 
 
 
