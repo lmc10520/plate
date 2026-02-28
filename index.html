@@ -194,4 +194,140 @@
                 <div class="type-stats" style="border-left: 5px solid #ff9f40;">
                     <div class="type-item">
                         <div class="type-label">身障(18)</div>
-                        <span id="stat-b2-disabl
+                        <span id="stat-b2-disabled">0</span>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-label">親子(11)</div>
+                        <span id="stat-b2-parent">0</span>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-label">綠能(15)</div>
+                        <span id="stat-b2-ev">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- B1 卡片 -->
+        <div class="chart-item">
+            <div class="floor-label">B1F</div>
+            <div class="canvas-wrapper">
+                <canvas id="chartB1"></canvas>
+            </div>
+            <div id="infoB1" class="chart-info">---</div>
+            <div class="type-stats-container">
+                <div class="type-stats" style="border-left: 5px solid #ff6384;">
+                    <div class="type-item">
+                        <div class="type-label">身障(5)</div>
+                        <span id="stat-b1-disabled">0</span>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-label">親子(4)</div>
+                        <span id="stat-b1-parent">0</span>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-label">綠能(0)</div>
+                        <span id="stat-b1-ev">0</span>
+                    </div>
+                </div>
+            </div>            
+        </div>
+    </div>
+
+    <!-- 搜尋區 -->
+    <div class="search-section">
+        <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌數字" onkeyup="if(event.keyCode==13) searchCar()">
+        <button id="search-btn" onclick="searchCar()">搜尋車位</button>
+        <div id="result"></div>
+    </div>
+
+    <p style="font-size: 0.75em; text-align: center; color: #aaa; margin-bottom: 50px;">
+        <a href="dashboard.html" style="text-decoration: none; color: #888;">
+        本資料為公益性質之使用，不涉及任何商業行為。
+        </a>
+    </p>
+</div>
+
+<script>
+    const API_URL = "https://analytics.sto-tek.com/_nodered/api/callExternalAPI?apiKey=495370807e744c8685b05ed5aabc3712&EAPI=API_Building_02&buildingID=kaohsiung_weiwuying&s=&m=lpr&p=0";
+    const TOTAL_B1 = 221;
+    const TOTAL_B2 = 495;
+    let allData = [];
+    let chartB1, chartB2;
+
+    function initCharts() {
+        const config = (color1, color2) => ({
+            type: 'pie',
+            data: {
+                labels: ['已入場', '剩餘空位'],
+                datasets: [{ data: [0, 100], backgroundColor: [color1, color2], borderWidth: 0 }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, // 關鍵：讓畫布跟隨容器高度
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } 
+            }
+        });
+
+        chartB1 = new Chart(document.getElementById('chartB1'), config('#ff6384', '#eaecf4'));
+        chartB2 = new Chart(document.getElementById('chartB2'), config('#ff9f40', '#eaecf4'));
+    }
+
+    async function updateDashboard() {
+        try {
+            document.getElementById('status').innerText = "更新中...";
+            const response = await fetch(API_URL);
+            const rawData = await response.json();
+            if (rawData && rawData.data) { allData = rawData.data; }
+            
+            const now = new Date().toLocaleTimeString();
+            document.getElementById('status').innerText = `最後更新：${now} (${allData.length} 筆)`;
+
+            const occupiedB1 = allData.filter(item => item.Floor === 'B1F' && item.LicensePlate && item.LicensePlate !== "NONE").length;
+            const occupiedB2 = allData.filter(item => item.Floor === 'B2F' && item.LicensePlate && item.LicensePlate !== "NONE").length;
+
+            const b1Data = allData.filter(item => item.Floor === 'B1F');
+            document.getElementById('stat-b1-disabled').innerText = b1Data.filter(item => item.Type.includes("身障") && item.LicensePlate !== "NONE").length;
+            document.getElementById('stat-b1-parent').innerText = b1Data.filter(item => item.Type.includes("親子") && item.LicensePlate !== "NONE").length;
+            document.getElementById('stat-b1-ev').innerText = b1Data.filter(item => (item.Type.includes("電動") || item.Type.includes("綠能")) && item.LicensePlate !== "NONE").length;
+
+            const b2Data = allData.filter(item => item.Floor === 'B2F');
+            document.getElementById('stat-b2-disabled').innerText = b2Data.filter(item => item.Type.includes("身障") && item.LicensePlate !== "NONE").length;
+            document.getElementById('stat-b2-parent').innerText = b2Data.filter(item => item.Type.includes("親子") && item.LicensePlate !== "NONE").length;
+            document.getElementById('stat-b2-ev').innerText = b2Data.filter(item => (item.Type.includes("電動") || item.Type.includes("綠能")) && item.LicensePlate !== "NONE").length;
+
+            updateChart(chartB1, occupiedB1, TOTAL_B1, 'infoB1');
+            updateChart(chartB2, occupiedB2, TOTAL_B2, 'infoB2');
+        } catch (e) { document.getElementById('status').innerText = "連線異常"; }
+    }
+
+    function updateChart(chartObj, occupied, total, infoId) {
+        chartObj.data.datasets[0].data = [occupied, total - occupied];
+        chartObj.update();
+        const percent = ((occupied / total) * 100).toFixed(1);
+        document.getElementById(infoId).innerHTML = `已停: ${occupied} / 總位: ${total} <br><span style="color:#d32f2f">佔用率: ${percent}%</span>`;
+    }
+
+    function searchCar() {
+        const inputNumbers = document.getElementById('plateInput').value.trim();
+        if (!inputNumbers) { document.getElementById('result').innerText = "請輸入數字"; return; }
+        const matches = allData.filter(item => {
+            if (!item.LicensePlate || item.LicensePlate === "NONE") return false;
+            return item.LicensePlate.toString().replace(/\D/g, '') === inputNumbers;
+        });
+        const resultDiv = document.getElementById('result');
+        if (matches.length > 0) {
+            let html = "";
+            matches.forEach(car => {
+                html += `<div style="padding:15px; border-bottom:1px solid #eee">位置：<b style="color:#ff6263; font-size:1.5em">${car.ParkingNumber}</b><br>樓層：${car.Floor} (${car.Type})</div>`;
+            });
+            resultDiv.innerHTML = html;
+        } else { resultDiv.innerHTML = "找不到車牌"; }
+    }
+
+    initCharts();
+    updateDashboard();
+    setInterval(updateDashboard, 120000);
+</script>
+</body>
+</html>
