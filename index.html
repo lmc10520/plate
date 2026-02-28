@@ -8,40 +8,38 @@
     <script src="https://ajax.googleapis.com/ajax/libs/chartjs/3.9.1/chart.min.js"></script>
     <script src="chart.min.js"></script>
     <style>
-    /* 基礎重設：消除 body 預設邊距，防止出現奇怪的空白 */
-    html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        min-height: 100%; /* 讓內容撐滿螢幕 */
-        background-color: #f4f7f6;
+    :root {
+    --primary-color: #ff6263;    /* 主色 */
+    --bg-color: #f4f7f6;         /* 背景底色 */
+    --card-bg: #ffffff;          /* 卡片顏色 */
+    --text-color: #5a5c69;       /* 文字顏色 */
+    --border-radius: 0.75rem;    /* 圓角弧度 */
+    --shadow: 0 .15rem 1.75rem 0 rgba(58,59,69,.15); /* 陰影 */
     }
+    body {
+        background-color: var(--bg-color);
+        font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--text-color);
+    }
+    /* 圖表容器：預設為橫向排列 */
+    .charts-container, .search-section {
+        background: var(--card-bg);
+        border: 1px solid #e3e6f0;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow);
+        padding: 20px;
+        margin-bottom: 24px;
+        min-height: 650px; /* 設定一個合理的最小高度 */
+        flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
+        gap: 20px;
+        display: flex;
+        flex-wrap: wrap; /* 允許換行 */
+    }
+
     h1 {
         text-align: center;
     }
-    .container {
-        max-width: 1000px;
-        margin: auto;
-        background: white;
-        padding: 15px;
-        /* 避免 container 被撐開產生底部空白 */
-        box-sizing: border-box; 
-        display: flex;
-        flex-direction: column;
-        gap: 10px; /* 使用 gap 自動產生間距，避免重疊 */
-    }
-
-    /* 圖表容器：預設為橫向排列 */
-    .charts-container {
-        display: flex;
-        flex-wrap: wrap; /* 允許換行 */
-        justify-content: space-around;
-        gap: 20px;
-        flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
-        min-height: 650px; /* 設定一個合理的最小高度 */
-        margin-bottom: 20px;
-    }
-
+        
     /* 個別圖表框：電腦版寬度 */
     .chart-box {
         flex: 1; /* 平分空間 */
@@ -129,30 +127,33 @@
             border-bottom: 1px solid #eee !important;
         }
     }
-
+        
+    /* 修改按鈕 */
+    .search-section button {
+        background-color: var(--primary-color);
+        border: none;
+        border-radius: 5px;
+        color: white;
+        padding: 10px 20px;
+        transition: background 0.3s ease;
+    }
+    
+    .search-section button:hover {
+        background-color: #ea5550; /* 稍微加深的顏色 */
+    }
+    
+    /* 修改輸入框 */
+    .search-section input {
+        border: 1px solid #d1d3e2;
+        border-radius: 5px;
+        padding: 10px;
+    }
+        
     /* 搜尋區樣式 */
     .search-section {
         border-top: 2px solid #eee;
         padding: 30px 10px;
         text-align: center;
-    }
-    input { 
-        padding: 12px; 
-        width: 80%; /* 手機版輸入框不要寫死 px，改用百分比 */
-        max-width: 300px;
-        font-size: 18px;
-        border: 2px solid #ddd; 
-        border-radius: 8px;
-        margin-bottom: 3%;
-    }
-    button { 
-        padding: 12px 30px; font-size: 18px; 
-        background-color: #ff6263; 
-        color: white; 
-        border: none; border-radius: 8px; cursor: pointer; 
-    }
-    button:hover { 
-        background-color: #ea5550; 
     }
     #result { 
         margin-top: 25px; font-size: 28px; font-weight: bold; color: #1e88e5; min-height: 40px; 
@@ -388,6 +389,7 @@
 
 </body>
 </html>
+
 
 
 
