@@ -29,7 +29,6 @@
         border-radius: var(--border-radius);
         box-shadow: var(--shadow);
         padding: 20px;
-        margin-bottom: 24px;
         min-height: 100%; /* 讓內容撐滿螢幕 */
         flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
         gap: 20px;
@@ -37,6 +36,8 @@
         flex-wrap: wrap; /* 允許換行 */
         justify-content: center; /* 水平置中 */
         min-height: 588px; /* 設定一個合理的最小高度給 Safari 讀取*/
+        width: 1024px;
+        margin: 0 auto;
     }
     .search-section {
         background: var(--card-bg);
@@ -51,6 +52,8 @@
         display: block;
         flex-wrap: wrap; /* 允許換行 */
         justify-content: center; /* 水平置中 */
+        width: 1024px;
+        margin: 0 auto;
     }
        
     h1 {
@@ -175,10 +178,10 @@
         text-align: center;
     }
     #result { 
-        margin-top: 25px; font-size: 2em; font-weight: bold; min-height: 40px; 
+        margin-top: 25px; font-size: 1em; font-weight: bold; min-height: 40px; 
     }
     .status-msg { 
-        font-size: 14px; color: #888; text-align: center; margin-bottom: 10px; 
+        font-size: 0.9em; color: #888; text-align: center; margin-bottom: 10px; 
     }
     </style>
 </head>
@@ -240,13 +243,12 @@
 
     <!-- 搜尋區 -->
     <div class="search-section">
-        <h2>停車位置檢索</h2>
-        <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="請輸入車牌「所有數字」" onkeyup="if(event.keyCode==13) searchCar()">
+        <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌「所有數字」檢索位置" onkeyup="if(event.keyCode==13) searchCar()">
         <button onclick="searchCar()">搜尋</button>
         <div id="result"></div>
     </div>
     <div>
-        <p style="font-size: 0.5em; text-align: center">
+        <p style="font-size: 0.75em; text-align: center">
             <a href="dashboard.html" style="text-decoration: none; color: black;">
             本資料為公益性質之使用，非營利且不涉及任何商業行為。如有涉及著作權之資料來源及其內容，皆屬原權利人所有，所有資訊皆源自網路上搜尋之開放資料進行統計呈現。
             </a>
@@ -409,6 +411,7 @@
 
 </body>
 </html>
+
 
 
 
