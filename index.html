@@ -237,7 +237,7 @@
 
     <!-- 搜尋區 -->
     <div class="search-section">
-        <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌數字" onkeyup="if(event.keyCode==13) searchCar()">
+        <input type="tel" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌數字" onkeyup="if(event.keyCode==13) searchCar()">
         <button id="search-btn" onclick="searchCar()">搜尋車位</button>
         <div id="result"></div>
     </div>
@@ -365,6 +365,7 @@
 </script>
 </body>
 </html>
+
 
 
 
