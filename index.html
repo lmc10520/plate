@@ -29,11 +29,12 @@
         box-shadow: var(--shadow);
         padding: 20px;
         margin-bottom: 24px;
-        min-height: 650px; /* 設定一個合理的最小高度 */
+        min-height: 100%; /* 讓內容撐滿螢幕 */
         flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
         gap: 20px;
         display: flex;
         flex-wrap: wrap; /* 允許換行 */
+        justify-content: center; /* 水平致中 */
     }
 
     h1 {
@@ -389,6 +390,7 @@
 
 </body>
 </html>
+
 
 
 
