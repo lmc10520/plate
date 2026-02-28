@@ -36,7 +36,7 @@
 
     h1 {
         text-align: center;
-        color: #ff6263;
+        color: #221714;
         margin: 20px 0;
     }
 
@@ -308,22 +308,55 @@
         const percent = ((occupied / total) * 100).toFixed(1);
         document.getElementById(infoId).innerHTML = `已停: ${occupied} / 總位: ${total} <br><span style="color:#d32f2f">佔用率: ${percent}%</span>`;
     }
-
+    
     function searchCar() {
+        // 1. 取得使用者輸入的數字字串
         const inputNumbers = document.getElementById('plateInput').value.trim();
-        if (!inputNumbers) { document.getElementById('result').innerText = "請輸入數字"; return; }
+    
+        // 2. 防呆：如果沒輸入，或是輸入長度太短（例如少於 2 碼），可以給提示或不搜尋
+        if (!inputNumbers) {
+            document.getElementById('result').innerHTML = "請輸入車牌中的數字";
+            return;
+        }
+        
+        if (inputNumbers.length < 2) {
+            document.getElementById('result').innerHTML = "請輸入至少 2 碼數字以利搜尋";
+            return;
+        }
+    
+        // 3. 在資料中進行「包含」比對
         const matches = allData.filter(item => {
+            // 如果該位置沒車，跳過
             if (!item.LicensePlate || item.LicensePlate === "NONE") return false;
-            return item.LicensePlate.toString().replace(/\D/g, '') === inputNumbers;
+            
+            // 將原始車牌轉為字串（例如 "BJA-1234"）
+            const fullPlate = item.LicensePlate.toString();
+            
+            // 做法：檢查「原始車牌」裡面有沒有包含使用者輸入的「數字片段」
+            // 這樣不管是輸入 1234 (後四碼) 還是輸入 5678 (前四碼) 都能找到
+            return fullPlate.includes(inputNumbers);
         });
+    
+        // 4. 顯示結果
         const resultDiv = document.getElementById('result');
         if (matches.length > 0) {
             let html = "";
+            // 如果搜尋結果太多（例如輸入 1 碼），可以提醒使用者
+            if (matches.length > 5) {
+                html += `<div style="color:#888; font-size:0.8em; margin-bottom:10px;">找到 ${matches.length} 筆相似結果：</div>`;
+            }
+    
             matches.forEach(car => {
-                html += `<div style="padding:15px; border-bottom:1px solid #eee">位置：<b style="color:#ff6263; font-size:1.5em">${car.ParkingNumber}</b><br>車牌：${car.LicensePlate} ． 樓層：${car.Floor} （ ${car.Type} ）</div>`;
+                html += `
+                    <div style="padding:15px; border-bottom:1px solid #eee; background:#fff; margin-bottom:10px; border-radius:8px;">
+                        位置：<b style="color:#ff6263; font-size:1.6em">${car.ParkingNumber}</b><br>
+                        車牌：${car.LicensePlate} ． 樓層：${car.Floor} （ ${car.Type} ）
+                    </div>`;
             });
             resultDiv.innerHTML = html;
-        } else { resultDiv.innerHTML = "找不到車牌"; }
+        } else {
+            resultDiv.innerHTML = `<span style="color:#d32f2f">找不到包含 "${inputNumbers}" 的車牌</span>`;
+        }
     }
 
     initCharts();
@@ -332,6 +365,7 @@
 </script>
 </body>
 </html>
+
 
 
 
