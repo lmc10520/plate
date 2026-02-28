@@ -27,6 +27,8 @@
         /* 避免 container 被撐開產生底部空白 */
         box-sizing: border-box; 
         display: flex;
+        flex-direction: column;
+        gap: 10px; /* 使用 gap 自動產生間距，避免重疊 */
     }
 
     /* 圖表容器：預設為橫向排列 */
@@ -38,8 +40,6 @@
         flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
         min-height: 650px; /* 設定一個合理的最小高度 */
         margin-bottom: 20px;
-        flex-direction: column;
-        gap: 10px; /* 使用 gap 自動產生間距，避免重疊 */
     }
 
     /* 個別圖表框：電腦版寬度 */
@@ -390,6 +390,7 @@
 
 </body>
 </html>
+
 
 
 
