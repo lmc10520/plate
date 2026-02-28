@@ -169,47 +169,49 @@
             <h3>B2F</h3>
             <canvas id="chartB2"></canvas>
             <div id="infoB2" class="chart-info">---</div>
+            <!-- 車格種類詳細統計 (分樓層顯示) -->
+            <div class="type-stats-container">
+                <!-- B2F 特殊車位 -->
+                <div class="type-stats floor-b2">
+                    <div class="floor-label">B2F</div>
+                    <div class="type-item">
+                        <div class="type-label">身障車輛(18)</div>
+                        <span id="stat-b2-disabled">0</span>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-label">親子車輛(11)</div>
+                        <span id="stat-b2-parent">0</span>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-label">綠能/電動(0)</div>
+                        <span id="stat-b2-ev">0</span>
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="chart-box">
             <h3>B1F</h3>
             <canvas id="chartB1"></canvas>
             <div id="infoB1" class="chart-info">---</div>
-        </div>
-    </div>
-
-    <!-- 車格種類詳細統計 (分樓層顯示) -->
-    <div class="type-stats-container">
-        <!-- B2F 特殊車位 -->
-        <div class="type-stats floor-b2">
-            <div class="floor-label">B2F</div>
-            <div class="type-item">
-                <div class="type-label">身障車輛(18)</div>
-                <span id="stat-b2-disabled">0</span>
-            </div>
-            <div class="type-item">
-                <div class="type-label">親子車輛(11)</div>
-                <span id="stat-b2-parent">0</span>
-            </div>
-            <div class="type-item">
-                <div class="type-label">綠能/電動(0)</div>
-                <span id="stat-b2-ev">0</span>
-            </div>
-        </div>
-        <!-- B1F 特殊車位 -->
-        <div class="type-stats floor-b1">
-            <div class="floor-label">B1F</div>
-            <div class="type-item">
-                <div class="type-label">身障車輛(5)</div>
-                <span id="stat-b1-disabled">0</span>
-            </div>
-            <div class="type-item">
-                <div class="type-label">親子車輛(4)</div>
-                <span id="stat-b1-parent">0</span>
-            </div>
-            <div class="type-item">
-                <div class="type-label">綠能/電動(0)</div>
-                <span id="stat-b1-ev">0</span>
-            </div>
+            <!-- 車格種類詳細統計 (分樓層顯示) -->
+            <div class="type-stats-container">
+                <!-- B1F 特殊車位 -->
+                <div class="type-stats floor-b1">
+                    <div class="floor-label">B1F</div>
+                    <div class="type-item">
+                        <div class="type-label">身障車輛(5)</div>
+                        <span id="stat-b1-disabled">0</span>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-label">親子車輛(4)</div>
+                        <span id="stat-b1-parent">0</span>
+                    </div>
+                    <div class="type-item">
+                        <div class="type-label">綠能/電動(0)</div>
+                        <span id="stat-b1-ev">0</span>
+                    </div>
+                </div>
+            </div>            
         </div>
     </div>
 
@@ -383,6 +385,7 @@
 
 </body>
 </html>
+
 
 
 
