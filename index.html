@@ -28,11 +28,11 @@
         border: 1px solid #e3e6f0;
         border-radius: var(--border-radius);
         box-shadow: var(--shadow);
-        padding: 20px;
+        padding: 10px;
         min-height: 100%; /* 讓內容撐滿螢幕 */
         flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
         gap: 20px;
-        display: block;
+        display: flex;
         flex-wrap: wrap; /* 允許換行 */
         justify-content: center; /* 水平置中 */
         min-height: 588px; /* 設定一個合理的最小高度給 Safari 讀取*/
@@ -381,7 +381,7 @@
             matches.forEach(car => {
                 htmlResult += `
                     <div style="margin-bottom: 15px;">
-                        位置：<span style="color: #ff6263;">${car.ParkingNumber}</span><br>
+                        位置：<span style="color: #ff6263; font-size:2em">${car.ParkingNumber}</span><br>
                         車牌：${car.LicensePlate} ． 樓層：${car.Floor} ． 種類：${car.Type}
                     </div>
                 `;
@@ -409,6 +409,7 @@
 
 </body>
 </html>
+
 
 
 
