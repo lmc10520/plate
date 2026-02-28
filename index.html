@@ -20,6 +20,7 @@
         background-color: var(--bg-color);
         font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         color: var(--text-color);
+        justify-content: center; /* 水平置中 */
     }
     /* 圖表容器：預設為橫向排列 */
     .charts-container{
@@ -35,7 +36,7 @@
         display: flex;
         flex-wrap: wrap; /* 允許換行 */
         justify-content: center; /* 水平置中 */
-        min-height: 624px; /* 設定一個合理的最小高度給 Safari 讀取*/
+        min-height: 588px; /* 設定一個合理的最小高度給 Safari 讀取*/
     }
     .search-section {
         background: var(--card-bg);
@@ -152,6 +153,7 @@
         color: white;
         padding: 10px 20px;
         transition: background 0.3s ease;
+        font-size: 2em;
     }
     
     .search-section button:hover {
@@ -163,6 +165,7 @@
         border: 1px solid #d1d3e2;
         border-radius: 5px;
         padding: 10px;
+        font-size: 2em;
     }
         
     /* 搜尋區樣式 */
@@ -172,7 +175,7 @@
         text-align: center;
     }
     #result { 
-        margin-top: 25px; font-size: 28px; font-weight: bold; color: #1e88e5; min-height: 40px; 
+        margin-top: 25px; font-size: 2em; font-weight: bold; min-height: 40px; 
     }
     .status-msg { 
         font-size: 14px; color: #888; text-align: center; margin-bottom: 10px; 
@@ -376,9 +379,10 @@
             matches.forEach(car => {
                 htmlResult += `
                     <div style="margin-bottom: 15px;">
-                        🚗 車牌：<span style="color: #2e7d32;">${car.LicensePlate}</span><br>
-                        📍 位置：<span style="color: #1e88e5;">${car.ParkingNumber}</span><br>
-                        <small style="font-size: 16px; color: #666;">樓層：${car.Floor} / 種類：${car.Type}</small>
+                        車牌：${car.LicensePlate}<br>
+                        位置：<span style="color: #ff6263;">${car.ParkingNumber}</span><br>
+                        樓層：${car.Floor}</span><br>
+                        種類：${car.Type}
                     </div>
                 `;
             });
@@ -405,6 +409,7 @@
 
 </body>
 </html>
+
 
 
 
