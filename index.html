@@ -261,48 +261,55 @@
             if (!response.ok) throw new Error(`HTTP 錯誤: ${response.status}`);
             
             const rawData = await response.json();
-
-            // 關鍵修正：將回傳的 data 陣列存入 allData
+    
+            // 1. 確保資料陣列存在並賦值給 allData
             if (rawData && rawData.data) {
                 allData = rawData.data;
             } else {
                 throw new Error("API 資料格式異常");
             }
-
-            document.getElementById('status').innerText = `最後更新時間：${new Date().toLocaleTimeString()} (共抓取 ${allData.length} 筆資料)`;
-
-            // 邏輯修正：使用 Floor 判斷樓層，且 LicensePlate 不為 "NONE" 視為佔用
+    
+            // 2. 更新時間顯示
+            const now = new Date().toLocaleTimeString();
+            document.getElementById('status').innerText = `最後更新時間：${now} (共抓取 ${allData.length} 筆資料)`;
+    
+            // 3. 樓層統計邏輯 (判斷是否佔用)
             const occupiedB1 = allData.filter(item => 
                 item.Floor === 'B1F' && item.LicensePlate && item.LicensePlate !== "NONE"
             ).length;
-
+    
             const occupiedB2 = allData.filter(item => 
                 item.Floor === 'B2F' && item.LicensePlate && item.LicensePlate !== "NONE"
             ).length;
-
-            // --- B1F 特殊車格統計 ---
+    
+            // 4. 特殊車格分樓層統計
+            // B1F
             const b1Data = allData.filter(item => item.Floor === 'B1F');
             const b1Disabled = b1Data.filter(item => item.Type.includes("身障") && item.LicensePlate !== "NONE").length;
             const b1Parent = b1Data.filter(item => item.Type.includes("親子") && item.LicensePlate !== "NONE").length;
             const b1EV = b1Data.filter(item => (item.Type.includes("電動") || item.Type.includes("綠能")) && item.LicensePlate !== "NONE").length;
     
-            // --- B2F 特殊車格統計 ---
+            // B2F
             const b2Data = allData.filter(item => item.Floor === 'B2F');
             const b2Disabled = b2Data.filter(item => item.Type.includes("身障") && item.LicensePlate !== "NONE").length;
             const b2Parent = b2Data.filter(item => item.Type.includes("親子") && item.LicensePlate !== "NONE").length;
             const b2EV = b2Data.filter(item => (item.Type.includes("電動") || item.Type.includes("綠能")) && item.LicensePlate !== "NONE").length;
     
-            // --- 更新 UI 文字 ---
-            // B1
+            // 5. 更新文字數據到 HTML
+            // B1 樓層統計文字
             document.getElementById('stat-b1-disabled').innerText = b1Disabled;
             document.getElementById('stat-b1-parent').innerText = b1Parent;
             document.getElementById('stat-b1-ev').innerText = b1EV;
             
-            // B2
+            // B2 樓層統計文字
             document.getElementById('stat-b2-disabled').innerText = b2Disabled;
             document.getElementById('stat-b2-parent').innerText = b2Parent;
             document.getElementById('stat-b2-ev').innerText = b2EV;
-
+    
+            // 6. 更新 Pie Chart (這部分最重要，必須放在最後確保資料都算好了)
+            updateChart(chartB1, occupiedB1, TOTAL_B1, 'infoB1');
+            updateChart(chartB2, occupiedB2, TOTAL_B2, 'infoB2');
+    
         } catch (error) {
             console.error("更新失敗:", error);
             document.getElementById('status').innerText = "更新失敗: " + error.message;
@@ -376,6 +383,7 @@
 
 </body>
 </html>
+
 
 
 
