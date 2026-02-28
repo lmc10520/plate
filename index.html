@@ -29,13 +29,13 @@
         border-radius: var(--border-radius);
         box-shadow: var(--shadow);
         padding: 10px;
-        min-height: 100%; /* 讓內容撐滿螢幕 */
         flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
+        min-height: 588px; /* 設定一個合理的最小高度給 Safari 讀取*/        
+        height: 80dvh; /* Safari 相容的最佳寫法 */
         gap: 20px;
         display: flex;
         flex-wrap: wrap; /* 允許換行 */
         justify-content: center; /* 水平置中 */
-        min-height: 588px; /* 設定一個合理的最小高度給 Safari 讀取*/
         width: 1024px;
         margin: 0 auto;
     }
@@ -49,7 +49,7 @@
         min-height: 100%; /* 讓內容撐滿螢幕 */
         flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
         gap: 20px;
-        display: block;
+        display: flex;
         flex-wrap: wrap; /* 允許換行 */
         justify-content: center; /* 水平置中 */
         width: 1024px;
@@ -243,9 +243,11 @@
 
     <!-- 搜尋區 -->
     <div class="search-section">
-        <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌所有數字找位置" onkeyup="if(event.keyCode==13) searchCar()">
-        <button onclick="searchCar()">搜尋</button>
-        <div id="result"></div>
+        <div style="display: block">
+            <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌所有數字找位置" onkeyup="if(event.keyCode==13) searchCar()">
+            <button onclick="searchCar()">搜尋</button>
+            <div id="result"></div>
+        </div>
     </div>
     <div>
         <p style="font-size: 0.75em; text-align: center">
@@ -409,6 +411,7 @@
 
 </body>
 </html>
+
 
 
 
