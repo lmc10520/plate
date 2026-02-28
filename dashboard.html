@@ -184,13 +184,15 @@
       </div>
       <div class="range-tabs">
         <button class="rtab on" onclick="setQuick('all',this)">全部</button>
+        <button class="rtab" onclick="setQuick(24,this)">24 小時</button>
+        <button class="rtab" onclick="setQuick(12,this)">12 小時</button>
         <button class="rtab" onclick="setQuick(6,this)">6 小時</button>
         <button class="rtab" onclick="setQuick(3,this)">3 小時</button>
         <button class="rtab" onclick="setQuick(1,this)">1 小時</button>
       </div>
       <div class="filter-divider"></div>
       <div class="custom-range">
-        <label>自訂區間</label>
+        <label>自訂</label>
         <input type="datetime-local" id="dt-start" class="dt-input">
         <span style="color:var(--muted)">→</span>
         <input type="datetime-local" id="dt-end" class="dt-input">
