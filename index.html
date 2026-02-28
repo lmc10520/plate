@@ -6,215 +6,173 @@
     <meta name="description" content="提供目前停車場使用比例的快速檢視，幫助了解停車場還有多少停車格可以停放。">
     <title>停泊車輛即時資訊</title>
     <script src="https://ajax.googleapis.com/ajax/libs/chartjs/3.9.1/chart.min.js"></script>
-    <script src="chart.min.js"></script>
     <style>
+    /* 1. 全域變數與重設 */
     :root {
-    --primary-color: #ff6263;    /* 主色 */
-    --bg-color: #f4f7f6;         /* 背景底色 */
-    --card-bg: #ffffff;          /* 卡片顏色 */
-    --text-color: #5a5c69;       /* 文字顏色 */
-    --border-radius: 0.75rem;    /* 圓角弧度 */
-    --shadow: 0 .15rem 1.75rem 0 rgba(58,59,69,.15); /* 陰影 */
+        --primary-color: #ff6263;    
+        --bg-color: #f8f9fc;         
+        --card-bg: #ffffff;          
+        --text-color: #5a5c69;       
+        --border-radius: 0.75rem;    
+        --shadow: 0 .15rem 1.75rem 0 rgba(58,59,69,.15);
     }
+
+    * { box-sizing: border-box; } /* 確保邊距不影響寬度計算 */
+
     body {
         background-color: var(--bg-color);
         font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         color: var(--text-color);
-        padding: 20px;
+        margin: 0;
+        padding: 15px;
+        line-height: 1.5;
     }
-    /* 主容器 */
+
     .container {
-        max-width: 1200px;
-        margin: 0 auto;
-    }        
-    /* 圖表容器：預設為橫向排列 */
-    .charts-container{
-        background: var(--card-bg);
-        border: 1px solid #e3e6f0;
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow);
-        padding: 10px;
-        flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
-        min-height: 588px; /* 設定一個合理的最小高度給 Safari 讀取*/        
-        gap: 20px;
-        display: flex;
-        flex-wrap: wrap; /* 允許換行 */
-        margin-bottom: 24px;
-        align-items: flex-start; /* 避免高度被拉伸 */
-    }
-    .search-section {
-        background: var(--card-bg);
-        border: 1px solid #e3e6f0;
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow);
-        padding: 20px;
-        margin-bottom: 24px;
-        min-height: 100%; /* 讓內容撐滿螢幕 */
-        flex-shrink: 0; /* 防止 Safari 將此區塊壓扁導致重疊 */
-        gap: 20px;
-        display: flex;
-        flex-wrap: wrap; /* 允許換行 */
-        justify-content: center; /* 水平置中 */
-        width: 1024px;
+        max-width: 1100px;
         margin: 0 auto;
     }
-       
+
     h1 {
         text-align: center;
+        color: #4e73df;
+        margin: 20px 0;
     }
-        
-    /* 圖表卡片樣式 */
+
+    .status-msg { 
+        font-size: 0.9em; 
+        color: #888; 
+        text-align: center; 
+        margin-bottom: 20px; 
+    }
+
+    /* 2. 圖表容器區塊 */
+    .charts-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 25px;
+    }
+
+    /* 3. 卡片樣式 (核心) */
     .chart-item {
-        flex: 1 1 calc(50% - 20px); /* 桌機版兩個一排 */
-        min-width: 300px;          /* 確保在手機上不會太窄 */
-        background: #fff;
+        flex: 1 1 calc(50% - 10px); /* 桌機版兩個一排 */
+        min-width: 320px;          /* 低於此寬度會自動換行 */
+        background: var(--card-bg);
         border: 1px solid #e3e6f0;
-        border-radius: 8px;
+        border-radius: var(--border-radius);
         padding: 20px;
-        box-shadow: 0 .15rem 1.75rem 0 rgba(58, 59, 69, .15);
-        
-        /* 解決巨大化的關鍵：限制高度 */
-        position: relative;
-        height: 350px; 
-    }    
-        
-    /* 種類統計樣式 */
-    .type-stats-container {
+        box-shadow: var(--shadow);
         display: flex;
         flex-direction: column;
-        gap: 15px;
-        margin-bottom: 30px;
+        align-items: center;
+    }
+
+    /* 限制畫布高度，防止巨大化 */
+    .canvas-wrapper {
+        position: relative;
+        height: 250px; /* 固定圖表高度 */
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .chart-info {
+        text-align: center;
+        margin-bottom: 20px;
+        font-weight: bold;
+    }
+
+    /* 4. 特殊車位統計樣式 */
+    .type-stats-container {
+        width: 100%;
+        margin-top: auto; /* 推至底部 */
     }
 
     .type-stats {
         display: flex;
-        align-items: center;
-        background: #fff;
-        border: 1px solid #ddd;
+        justify-content: space-around;
+        background: #f8f9fc;
+        border: 1px solid #eee;
         border-radius: 10px;
         padding: 10px;
     }
 
-    .floor-label {
-        background: #444;
-        color: white;
-        padding: 5px 15px;
-        border-radius: 5px;
-        font-weight: bold;
-        margin-right: 15px;
-        min-width: 40px;
-        text-align: center;
-    }
-
-    /* B1 B2 不同顏色提示 */
-    .floor-b1 { border-left: 8px solid #ff6384; }
-    .floor-b2 { border-left: 8px solid #ff9f40; }
-
     .type-item {
-        flex: 1;
         text-align: center;
-        border-right: 1px solid #eee;
+        flex: 1;
     }
-
-    .type-item:last-child { border-right: none; }
 
     .type-item span {
         display: block;
-        font-size: 22px;
+        font-size: 1.2em;
         font-weight: bold;
         color: #2e7d32;
     }
 
     .type-label {
-        font-size: 12px;
+        font-size: 0.75em;
         color: #777;
     }
 
-    /* 搜尋區塊卡片化 */
-    .search-section {
-        background: #fff;
-        border: 1px solid #e3e6f0;
-        border-radius: 8px;
-        padding: 25px;
-        box-shadow: 0 .15rem 1.75rem 0 rgba(58, 59, 69, .15);
-        margin-top: 20px;
-        clear: both; /* 確保不會跟上方重疊 */
+    .floor-label {
+        background: #4e73df;
+        color: white;
+        padding: 5px 20px;
+        border-radius: 20px;
+        font-size: 1.1em;
+        margin-bottom: 15px;
     }
-    
-    /* 讓搜尋欄內的元件整齊 */
-    #plate-input {
-        padding: 10px;
+
+    /* 5. 搜尋區塊 (修正重點) */
+    .search-section {
+        background: var(--card-bg);
+        border: 1px solid #e3e6f0;
+        border-radius: var(--border-radius);
+        padding: 30px 20px;
+        box-shadow: var(--shadow);
+        text-align: center;
+        width: 100%; /* 不再寫死 1024px */
+        margin-bottom: 30px;
+    }
+
+    #plateInput {
+        padding: 12px;
         border: 1px solid #d1d3e2;
         border-radius: 5px;
-        width: 200px;
-        margin-right: 10px;
+        width: 100%;
+        max-width: 300px;
+        font-size: 1.1em;
+        margin-bottom: 10px;
     }
-    
+
     #search-btn {
-        background-color: #4e73df; /* Dashboard 主色藍 */
+        background-color: var(--primary-color);
         color: white;
         border: none;
-        padding: 10px 20px;
+        padding: 12px 30px;
         border-radius: 5px;
         cursor: pointer;
+        font-size: 1.1em;
         font-weight: bold;
+        transition: 0.3s;
     }
-    
-    #search-btn:hover {
-        background-color: #2e59d9;
+
+    #search-btn:hover { background-color: #ea5550; }
+
+    #result { 
+        margin-top: 25px; 
+        font-size: 1.1em; 
+        min-height: 40px; 
     }
-    /* 手機版排版優化 (螢幕小於 768px 時執行) */
-    /* RWD 響應式調整 */
+
+    /* 6. 響應式微調 */
     @media (max-width: 768px) {
         .chart-item {
-            flex: 1 1 100%; /* 手機版圖表佔滿 100% 寬度 */
-            height: 300px;  /* 手機版高度稍微縮小，避免畫面太長 */
+            flex: 1 1 100%; /* 手機版一格一排 */
         }
-        
-        #plate-input {
-            width: 100%;
-            margin-bottom: 10px;
+        #plateInput {
+            max-width: 100%;
         }
-        
-        #search-btn {
-            width: 100%;
-        }
-    }
-        
-    /* 修改按鈕 */
-    .search-section button {
-        background-color: var(--primary-color);
-        border: none;
-        border-radius: 5px;
-        color: white;
-        padding: 10px 20px;
-        transition: background 0.3s ease;
-        font-size: 1.5em;
-    }
-    
-    .search-section button:hover {
-        background-color: #ea5550; /* 稍微加深的顏色 */
-    }
-    
-    /* 修改輸入框 */
-    .search-section input {
-        border: 1px solid #d1d3e2;
-        border-radius: 5px;
-        padding: 10px;
-        font-size: 1.5em;
-    }
-        
-    /* 搜尋區樣式 */
-    .search-section {
-        border-top: 2px solid #eee;
-        padding: 30px 10px;
-        text-align: center;
-    }
-    #result { 
-        margin-top: 25px; font-size: 1em; font-weight: bold; min-height: 40px; 
-    }
-    .status-msg { 
-        font-size: 0.9em; color: #888; text-align: center; margin-bottom: 10px; 
     }
     </style>
 </head>
@@ -224,255 +182,16 @@
     <h1>停泊車輛即時資訊</h1>
     <div id="status" class="status-msg">連線中...</div>
 
-    <!-- 圓餅圖區 -->
     <div class="charts-container">
+        <!-- B2 卡片 -->
         <div class="chart-item">
-            <h3 class="floor-label">B2F</h3>
-            <canvas id="chartB2"></canvas>
-            <div id="infoB2" class="chart-info">---</div>
-            <!-- 車格種類詳細統計 (分樓層顯示) -->
-            <div class="type-stats-container">
-                <!-- B2F 特殊車位 -->
-                <div class="type-stats floor-b2">
-                    <div class="type-item">
-                        <div class="type-label">身障車輛(18)</div>
-                        <span id="stat-b2-disabled">0</span>
-                    </div>
-                    <div class="type-item">
-                        <div class="type-label">親子車輛(11)</div>
-                        <span id="stat-b2-parent">0</span>
-                    </div>
-                    <div class="type-item">
-                        <div class="type-label">綠能/電動(15)</div>
-                        <span id="stat-b2-ev">0</span>
-                    </div>
-                </div>
+            <div class="floor-label">B2F</div>
+            <div class="canvas-wrapper">
+                <canvas id="chartB2"></canvas>
             </div>
-        </div>
-        <div class="chart-item">
-            <h3 class="floor-label">B1F</h3>
-            <canvas id="chartB1"></canvas>
-            <div id="infoB1" class="chart-info">---</div>
-            <!-- 車格種類詳細統計 (分樓層顯示) -->
+            <div id="infoB2" class="chart-info">---</div>
             <div class="type-stats-container">
-                <!-- B1F 特殊車位 -->
-                <div class="type-stats floor-b1">
+                <div class="type-stats" style="border-left: 5px solid #ff9f40;">
                     <div class="type-item">
-                        <div class="type-label">身障車輛(5)</div>
-                        <span id="stat-b1-disabled">0</span>
-                    </div>
-                    <div class="type-item">
-                        <div class="type-label">親子車輛(4)</div>
-                        <span id="stat-b1-parent">0</span>
-                    </div>
-                    <div class="type-item">
-                        <div class="type-label">綠能/電動(0)</div>
-                        <span id="stat-b1-ev">0</span>
-                    </div>
-                </div>
-            </div>            
-        </div>
-    </div>
-
-    <!-- 搜尋區 -->
-    <div class="search-section">
-        <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌所有數字找位置" onkeyup="if(event.keyCode==13) searchCar()">
-        <button id="search-btn" onclick="searchCar()">搜尋</button>
-        <div id="result"></div>
-    </div>
-    <div>
-        <p style="font-size: 0.75em; text-align: center">
-            <a href="dashboard.html" style="text-decoration: none; color: black;">
-            本資料為公益性質之使用，非營利且不涉及任何商業行為。如有涉及著作權之資料來源及其內容，皆屬原權利人所有，所有資訊皆源自網路上搜尋之開放資料進行統計呈現。
-            </a>
-        </p>
-    </div>
-</div>
-
-<script>
-    const API_URL = "https://analytics.sto-tek.com/_nodered/api/callExternalAPI?apiKey=495370807e744c8685b05ed5aabc3712&EAPI=API_Building_02&buildingID=kaohsiung_weiwuying&s=&m=lpr&p=0";
-    
-    // 你提供的樓層總數
-    const TOTAL_B1 = 221;
-    const TOTAL_B2 = 495;
-
-    let allData = [];
-    let chartB1, chartB2;
-
-    function initCharts() {
-        const config = (color1, color2) => ({
-            type: 'pie',
-            data: {
-                labels: ['已入場車輛數', '剩餘空位數'],
-                datasets: [{ data: [0, 100], backgroundColor: [color1, color2] }]
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } } 
-            }
-        });
-
-        chartB1 = new Chart(document.getElementById('chartB1'), config('#ff6263', '#333333'));
-        chartB2 = new Chart(document.getElementById('chartB2'), config('#ff6263', '#333333'));
-    }
-
-    async function updateDashboard() {
-        try {
-            document.getElementById('status').innerText = "連線中...";
-            const response = await fetch(API_URL);
-            
-            if (!response.ok) throw new Error(`HTTP 錯誤: ${response.status}`);
-            
-            const rawData = await response.json();
-    
-            // 1. 確保資料陣列存在並賦值給 allData
-            if (rawData && rawData.data) {
-                allData = rawData.data;
-            } else {
-                throw new Error("API 資料格式異常");
-            }
-    
-            // 2. 更新時間顯示
-            const now = new Date().toLocaleTimeString();
-            document.getElementById('status').innerText = `最後更新時間：${now} (共抓取 ${allData.length} 筆資料)`;
-    
-            // 3. 樓層統計邏輯 (判斷是否佔用)
-            const occupiedB1 = allData.filter(item => 
-                item.Floor === 'B1F' && item.LicensePlate && item.LicensePlate !== "NONE"
-            ).length;
-    
-            const occupiedB2 = allData.filter(item => 
-                item.Floor === 'B2F' && item.LicensePlate && item.LicensePlate !== "NONE"
-            ).length;
-    
-            // 4. 特殊車格分樓層統計
-            // B1F
-            const b1Data = allData.filter(item => item.Floor === 'B1F');
-            const b1Disabled = b1Data.filter(item => item.Type.includes("身障") && item.LicensePlate !== "NONE").length;
-            const b1Parent = b1Data.filter(item => item.Type.includes("親子") && item.LicensePlate !== "NONE").length;
-            const b1EV = b1Data.filter(item => (item.Type.includes("電動") || item.Type.includes("綠能")) && item.LicensePlate !== "NONE").length;
-    
-            // B2F
-            const b2Data = allData.filter(item => item.Floor === 'B2F');
-            const b2Disabled = b2Data.filter(item => item.Type.includes("身障") && item.LicensePlate !== "NONE").length;
-            const b2Parent = b2Data.filter(item => item.Type.includes("親子") && item.LicensePlate !== "NONE").length;
-            const b2EV = b2Data.filter(item => (item.Type.includes("電動") || item.Type.includes("綠能")) && item.LicensePlate !== "NONE").length;
-    
-            // 5. 更新文字數據到 HTML
-            // B1 樓層統計文字
-            document.getElementById('stat-b1-disabled').innerText = b1Disabled;
-            document.getElementById('stat-b1-parent').innerText = b1Parent;
-            document.getElementById('stat-b1-ev').innerText = b1EV;
-            
-            // B2 樓層統計文字
-            document.getElementById('stat-b2-disabled').innerText = b2Disabled;
-            document.getElementById('stat-b2-parent').innerText = b2Parent;
-            document.getElementById('stat-b2-ev').innerText = b2EV;
-    
-            // 6. 更新 Pie Chart (這部分最重要，必須放在最後確保資料都算好了)
-            updateChart(chartB1, occupiedB1, TOTAL_B1, 'infoB1');
-            updateChart(chartB2, occupiedB2, TOTAL_B2, 'infoB2');
-    
-        } catch (error) {
-            console.error("更新失敗:", error);
-            document.getElementById('status').innerText = "更新失敗: " + error.message;
-        }
-    }
-
-    function updateChart(chartObj, occupied, total, infoId) {
-        const empty = total - occupied;
-        chartObj.data.datasets[0].data = [occupied, empty];
-        chartObj.update();
-        const percent = ((occupied / total) * 100).toFixed(1);
-        document.getElementById(infoId).innerHTML = `
-            已入場車輛數： ${occupied} / 停車格總數： ${total}<br>
-            <span style="color:#d32f2f">滿場率： ${percent}%</span>
-        `;
-    }
-
-    function searchCar() {
-        // 1. 取得使用者輸入，並利用正規表示式只留下數字 (\D 代表非數字的字元，全部替換掉)
-        const inputRaw = document.getElementById('plateInput').value.trim();
-        const inputNumbers = inputRaw.replace(/\D/g, ''); 
-
-        if (!inputNumbers) {
-            document.getElementById('result').innerText = "請輸入車牌數字";
-            return;
-        }
-
-        // 2. 在資料中尋找，同樣將 LicensePlate 轉為純數字進行比對
-        // 使用 filter 而不是 find，因為可能會有兩台車數字相同 (例如 ABC-1234 與 DEF-1234)
-        const matches = allData.filter(item => {
-            if (!item.LicensePlate || item.LicensePlate === "NONE") return false;
-            
-            const plateNumbers = item.LicensePlate.toString().replace(/\D/g, '');
-            return plateNumbers === inputNumbers;
-        });
-        
-        const resultDiv = document.getElementById('result');
-        
-        if (matches.length > 0) {
-            // 如果有多台車數字相同，全部顯示出來
-            let htmlResult = "";
-            matches.forEach(car => {
-                htmlResult += `
-                    <div style="margin-bottom: 15px;">
-                        位置：<span style="color: #ff6263; font-size:2em">${car.ParkingNumber}</span><br>
-                        車牌：${car.LicensePlate} ． 樓層：${car.Floor} ． 種類：${car.Type}
-                    </div>
-                `;
-            });
-            resultDiv.innerHTML = htmlResult;
-        } else {
-            resultDiv.innerHTML = `<span style="color:#d32f2f">找不到包含數字 "${inputNumbers}" 的車牌</span>`;
-        }
-    }
-
-    // 確保全部資源載入後才執行
-    function startApp() {
-        if (typeof Chart === 'undefined') {
-            setTimeout(startApp, 100); // 如果還沒載入完，等 100 毫秒再試一次
-            return;
-        }
-        initCharts();
-        updateDashboard();
-        // 設定每 2 分鐘更新一次
-        setInterval(updateDashboard, 120000);
-    }
-
-    startApp(); // 取代原本直接呼叫的方式
-</script>
-
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                        <div class="type-label">身障(18)</div>
+                        <span id="stat-b2-disabl
