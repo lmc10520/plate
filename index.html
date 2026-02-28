@@ -20,8 +20,13 @@
         background-color: var(--bg-color);
         font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         color: var(--text-color);
-        justify-content: center; /* 水平置中 */
+        padding: 20px;
     }
+    /* 主容器 */
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }        
     /* 圖表容器：預設為橫向排列 */
     .charts-container{
         background: var(--card-bg);
@@ -34,9 +39,8 @@
         gap: 20px;
         display: flex;
         flex-wrap: wrap; /* 允許換行 */
-        justify-content: center; /* 水平置中 */
-        width: 1024px;
-        margin: 0 auto;
+        margin-bottom: 24px;
+        align-items: flex-start; /* 避免高度被拉伸 */
     }
     .search-section {
         background: var(--card-bg);
@@ -59,15 +63,21 @@
         text-align: center;
     }
         
-    /* 個別圖表框：電腦版寬度 */
-    .chart-box {
-        flex: 1; /* 平分空間 */
-        min-width: 300px;
-        max-width: 450px;
-        text-align: center;
-        /* 重要：固定一個高度比例，防止手機版縮得太小 */
-        aspect-ratio: 1 / 1; 
-    }
+    /* 圖表卡片樣式 */
+    .chart-item {
+        flex: 1 1 calc(50% - 20px); /* 桌機版兩個一排 */
+        min-width: 300px;          /* 確保在手機上不會太窄 */
+        background: #fff;
+        border: 1px solid #e3e6f0;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 .15rem 1.75rem 0 rgba(58, 59, 69, .15);
+        
+        /* 解決巨大化的關鍵：限制高度 */
+        position: relative;
+        height: 350px; 
+    }    
+        
     /* 種類統計樣式 */
     .type-stats-container {
         display: flex;
@@ -120,30 +130,54 @@
         color: #777;
     }
 
+    /* 搜尋區塊卡片化 */
+    .search-section {
+        background: #fff;
+        border: 1px solid #e3e6f0;
+        border-radius: 8px;
+        padding: 25px;
+        box-shadow: 0 .15rem 1.75rem 0 rgba(58, 59, 69, .15);
+        margin-top: 20px;
+        clear: both; /* 確保不會跟上方重疊 */
+    }
+    
+    /* 讓搜尋欄內的元件整齊 */
+    #plate-input {
+        padding: 10px;
+        border: 1px solid #d1d3e2;
+        border-radius: 5px;
+        width: 200px;
+        margin-right: 10px;
+    }
+    
+    #search-btn {
+        background-color: #4e73df; /* Dashboard 主色藍 */
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    
+    #search-btn:hover {
+        background-color: #2e59d9;
+    }
     /* 手機版排版優化 (螢幕小於 768px 時執行) */
+    /* RWD 響應式調整 */
     @media (max-width: 768px) {
-        .charts-container {
-            flex-direction: column; /* 改為上下排列 */
-            align-items: center;
+        .chart-item {
+            flex: 1 1 100%; /* 手機版圖表佔滿 100% 寬度 */
+            height: 300px;  /* 手機版高度稍微縮小，避免畫面太長 */
         }
-        .chart-box {
-            width: 100%; /* 手機版佔滿寬度 */
-            max-width: 100%;
-            margin-bottom: 222px;
-        }
-        .type-stats {
-            flex-wrap: wrap;
-        }
-        .floor-label {
+        
+        #plate-input {
             width: 100%;
             margin-bottom: 10px;
-            margin-right: 0;
         }
-        .type-item {
-            border: none !important;
-            padding: 10px 0;
-            background: #fff;
-            border-bottom: 1px solid #eee !important;
+        
+        #search-btn {
+            width: 100%;
         }
     }
         
@@ -192,7 +226,7 @@
 
     <!-- 圓餅圖區 -->
     <div class="charts-container">
-        <div class="chart-box">
+        <div class="chart-item">
             <h3 class="floor-label">B2F</h3>
             <canvas id="chartB2"></canvas>
             <div id="infoB2" class="chart-info">---</div>
@@ -215,7 +249,7 @@
                 </div>
             </div>
         </div>
-        <div class="chart-box">
+        <div class="chart-item">
             <h3 class="floor-label">B1F</h3>
             <canvas id="chartB1"></canvas>
             <div id="infoB1" class="chart-info">---</div>
@@ -242,11 +276,9 @@
 
     <!-- 搜尋區 -->
     <div class="search-section">
-        <div style="display: block">
-            <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌所有數字找位置" onkeyup="if(event.keyCode==13) searchCar()">
-            <button onclick="searchCar()">搜尋</button>
-            <div id="result"></div>
-        </div>
+        <input type="number" id="plateInput" inputmode="numeric" pattern="[0-9]*" placeholder="輸入車牌所有數字找位置" onkeyup="if(event.keyCode==13) searchCar()">
+        <button id="search-btn" onclick="searchCar()">搜尋</button>
+        <div id="result"></div>
     </div>
     <div>
         <p style="font-size: 0.75em; text-align: center">
@@ -274,7 +306,11 @@
                 labels: ['已入場車輛數', '剩餘空位數'],
                 datasets: [{ data: [0, 100], backgroundColor: [color1, color2] }]
             },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } } 
+            }
         });
 
         chartB1 = new Chart(document.getElementById('chartB1'), config('#ff6263', '#333333'));
@@ -410,6 +446,7 @@
 
 </body>
 </html>
+
 
 
 
