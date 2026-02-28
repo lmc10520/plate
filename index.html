@@ -320,7 +320,7 @@
         if (matches.length > 0) {
             let html = "";
             matches.forEach(car => {
-                html += `<div style="padding:15px; border-bottom:1px solid #eee">位置：<b style="color:#ff6263; font-size:1.5em">${car.ParkingNumber}</b><br>樓層：${car.Floor} (${car.Type})</div>`;
+                html += `<div style="padding:15px; border-bottom:1px solid #eee">位置：<b style="color:#ff6263; font-size:1.5em">${car.ParkingNumber}</b><br>車牌：${car.LicensePlate} ． 樓層：${car.Floor} （ ${car.Type} ）</div>`;
             });
             resultDiv.innerHTML = html;
         } else { resultDiv.innerHTML = "找不到車牌"; }
@@ -332,5 +332,6 @@
 </script>
 </body>
 </html>
+
 
 
