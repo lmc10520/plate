@@ -13,16 +13,16 @@
     --b1f:#00d4ff; --b2f:#a78bfa; --total:#34d399; --amber:#f59e0b;
     --danger:#ef4444; --success:#10b981; --muted:#64748b; --text:#e2e8f0;
   }
-  /* 淺色主題變數 */
+  /* 淺色主題變數（紅色系） */
   body.light {
     --bg: #f8f9fc; --surface: #ffffff; --surface2: #f0f2f7; --border: #dde1ea;
-    --b1f: #0284c7; --b2f: #7c3aed; --total: #059669; --amber: #d97706;
+    --b1f: #ff6263; --b2f: #ff8c42; --total: #059669; --amber: #d97706;
     --danger: #dc2626; --success: #16a34a; --muted: #94a3b8; --text: #1e293b;
   }
   body.light::before {
     background:
-      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(2,132,199,0.05) 0%, transparent 60%),
-      radial-gradient(ellipse 40% 60% at 90% 80%, rgba(124,58,237,0.05) 0%, transparent 60%);
+      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(255,98,99,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 90% 80%, rgba(255,140,66,0.05) 0%, transparent 60%);
   }
   /* 淺色模式下 chart.js tooltip */
   body.light .chart-wrap canvas {
@@ -184,7 +184,12 @@
   
   body.light .switch-thumb {
     transform: translateX(2px);
-    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    background: linear-gradient(135deg, #ff6263, #ff8c42);
+  }
+
+  /* 淺色模式下日期選擇器配色 */
+  body.light .dt-input {
+    color-scheme: light;
   }
   
   .switch-icon {
@@ -283,7 +288,7 @@
   </div>
     <div>
         <p style="font-size: 0.5em; text-align: center">
-            <a href="index.html" style="text-decoration: none; color: white;">
+            <a href="index.html" style="text-decoration: none; color: var(--text);">
             本資料為公益性質之使用，非營利且不涉及任何商業行為。如有涉及著作權之資料來源及其內容，皆屬原權利人所有，所有資訊皆源自網路上搜尋之開放資料進行統計呈現。
             </a>
         </p>
@@ -296,7 +301,7 @@ let floor = 'all';
 let quickHours = 'all';   // 快速按鈕選的範圍
 let customStart = null;   // 自訂開始時間（Date 物件）
 let customEnd   = null;   // 自訂結束時間（Date 物件）
-let cdTimer = 60;
+let cdTimer = 600;
 
 // ── 資料篩選 ──────────────────────────────────────
 function getFiltered() {
@@ -406,6 +411,11 @@ function render() {
   renderTable();
 }
 
+// ── 取得目前主題的顏色（深/淺色版切換時圖表跟著變）──
+function themeColor(varName) {
+  return getComputedStyle(document.body).getPropertyValue(varName).trim();
+}
+
 // ── 折線圖 ──────────────────────────────────────
 function renderChart(data) {
   const ctx = document.getElementById('chart').getContext('2d');
@@ -420,6 +430,18 @@ function renderChart(data) {
     ctx.fillText('此區間無資料', ctx.canvas.width / 2, 150);
     return;
   }
+
+  // 動態讀取 CSS 變數顏色，深/淺色版都正確
+  const colTotal = themeColor('--total');
+  const colB1f   = themeColor('--b1f');
+  const colB2f   = themeColor('--b2f');
+  const colGrid  = document.body.classList.contains('light')
+    ? 'rgba(0,0,0,0.07)' : 'rgba(30,45,69,.6)';
+  const colTick  = document.body.classList.contains('light')
+    ? '#94a3b8' : '#64748b';
+  const colTooltipBg   = document.body.classList.contains('light') ? '#ffffff' : '#1a2234';
+  const colTooltipBody = document.body.classList.contains('light') ? '#1e293b' : '#e2e8f0';
+  const colTooltipBdr  = document.body.classList.contains('light') ? '#dde1ea' : '#1e2d45';
 
   const labels = data.map(d => d.timestamp.slice(5, 16));
   const pt = data.length <= 36 ? 3 : 0;
@@ -436,9 +458,9 @@ function renderChart(data) {
   const showB2  = floor === 'all' || floor === 'B2F';
 
   const datasets = [
-    ...(showAll ? [ds('全場合計', 'total', '#34d399')] : []),
-    ...(showB1  ? [ds('B1F',     'B1F',   '#00d4ff')] : []),
-    ...(showB2  ? [ds('B2F',     'B2F',   '#a78bfa')] : []),
+    ...(showAll ? [ds('全場合計', 'total', colTotal)] : []),
+    ...(showB2  ? [ds('B2F',     'B2F',   colB2f)]   : []),
+    ...(showB1  ? [ds('B1F',     'B1F',   colB1f)]   : []),
   ];
 
   chart = new Chart(ctx, {
@@ -450,18 +472,21 @@ function renderChart(data) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1a2234', titleColor: '#94a3b8',
-          bodyColor: '#e2e8f0', borderColor: '#1e2d45', borderWidth: 1, padding: 12
+          backgroundColor: colTooltipBg,
+          titleColor: colTick,
+          bodyColor: colTooltipBody,
+          borderColor: colTooltipBdr,
+          borderWidth: 1, padding: 12
         }
       },
       scales: {
         x: {
-          grid: { color: 'rgba(30,45,69,.6)' },
-          ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 }, maxTicksLimit: 12, maxRotation: 30 }
+          grid: { color: colGrid },
+          ticks: { color: colTick, font: { family: 'JetBrains Mono', size: 11 }, maxTicksLimit: 12, maxRotation: 30 }
         },
         y: {
-          grid: { color: 'rgba(30,45,69,.6)' },
-          ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 11 } },
+          grid: { color: colGrid },
+          ticks: { color: colTick, font: { family: 'JetBrains Mono', size: 11 } },
           beginAtZero: true
         }
       }
