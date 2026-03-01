@@ -7,11 +7,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
+  /* 深色主題變數 */
   :root {
     --bg:#0a0e1a; --surface:#111827; --surface2:#1a2234; --border:#1e2d45;
     --b1f:#00d4ff; --b2f:#a78bfa; --total:#34d399; --amber:#f59e0b;
     --danger:#ef4444; --success:#10b981; --muted:#64748b; --text:#e2e8f0;
   }
+  /* 淺色主題變數 */
+  body.light {
+    --bg: #f8f9fc; --surface: #ffffff; --surface2: #f0f2f7; --border: #dde1ea;
+    --b1f: #0284c7; --b2f: #7c3aed; --total: #059669; --amber: #d97706;
+    --danger: #dc2626; --success: #16a34a; --muted: #94a3b8; --text: #1e293b;
+  }
+  body.light::before {
+    background:
+      radial-gradient(ellipse 60% 40% at 10% 20%, rgba(2,132,199,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 90% 80%, rgba(124,58,237,0.05) 0%, transparent 60%);
+  }
+  /* 淺色模式下 chart.js tooltip */
+  body.light .chart-wrap canvas {
+    filter: none;
+  }
+  
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;}
   body::before{
@@ -136,6 +153,44 @@
   .sec-hdr {
     margin-bottom: 10px;
   }
+  
+  /* 深淺色切換 switch */
+  .theme-switch {
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  .switch-track {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    transition: background 0.3s, border-color 0.3s;
+    position: relative;
+  }
+  
+  .switch-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--b1f), var(--b2f));
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    transition: transform 0.3s;
+    flex-shrink: 0;
+  }
+  
+  body.light .switch-thumb {
+    transform: translateX(2px);
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+  }
+  
+  .switch-icon {
+    font-size: 14px;
+    line-height: 1;
+  }
 </style>
 </head>
 <body>
@@ -149,6 +204,14 @@
       </h1>
     </div>
     <div class="hdr-right">
+      <!-- 深淺色切換開關 -->
+      <div class="theme-switch" onclick="toggleTheme()" id="theme-btn" title="切換深/淺色模式">
+        <div class="switch-track">
+          <span class="switch-icon">🌙</span>
+          <div class="switch-thumb"></div>
+          <span class="switch-icon">☀️</span>
+        </div>
+      </div>
       <div class="status">
         <div class="dot" id="dot"></div>
         <span class="dot-text" id="dot-txt">載入中…</span>
@@ -481,6 +544,22 @@ setInterval(() => {
 }, 1000);
 
 fetchData();
+
+  // 深淺色切換
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  // 重新渲染圖表（讓顏色即時更新）
+  if (allData.length) renderChart(getFiltered());
+}
+
+// 記住使用者上次的深淺色選擇
+(function() {
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light');
+  }
+})();
+  
 </script>
 </body>
 </html>
