@@ -195,6 +195,7 @@
   .switch-icon {
     font-size: .78rem;;
     line-height: 1;
+    color: var(--muted);
   }
 </style>
 </head>
@@ -235,6 +236,7 @@
   <div class="chart-box">
     <div class="sec-hdr">
       <div class="sec-title">車流趨勢折線圖</div>
+      <div class="chart-wrap"><canvas id="chart"></canvas></div>
       <div class="legend">
         <div class="leg"><div class="leg-dot" style="background:var(--total)"></div>全場合計</div>
         <div class="leg"><div class="leg-dot" style="background:var(--b2f)"></div>B2F</div>
@@ -268,7 +270,6 @@
       </div>
       <div class="range-hint" id="range-hint">顯示全部資料</div>
     </div>
-    <div class="chart-wrap"><canvas id="chart"></canvas></div>
   </div>
 
   <div class="tbl-box">
