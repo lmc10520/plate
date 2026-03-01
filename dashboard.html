@@ -13,9 +13,9 @@
     --b1f:#00d4ff; --b2f:#a78bfa; --total:#34d399; --amber:#f59e0b;
     --danger:#ef4444; --success:#10b981; --muted:#64748b; --text:#e2e8f0;
   }
-  /* 淺色主題變數（紅色系） */
+  /* 淺色主題變數 */
   body.light {
-    --bg: #f8f9fc; --surface: #ffffff; --surface2: #f0f2f7; --border: #dde1ea;
+    --bg: #f0f0f0; --surface: #ffffff; --surface2: #fafafa; --border: #dde1ea;
     --b1f: #ff6263; --b2f: #ff8c42; --total: #059669; --amber: #d97706;
     --danger: #dc2626; --success: #16a34a; --muted: #94a3b8; --text: #1e293b;
   }
@@ -117,14 +117,45 @@
   }
   .apply-btn:hover{opacity:.85;}
 
-  /* 目前篩選範圍提示 */
-  .range-hint{
-    font-size:.72rem;color:var(--amber);font-family:'JetBrains Mono',monospace;
-    background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
-    border-radius:6px;padding:4px 10px;white-space:nowrap;
+  .chart-wrap {
+    position: relative;
+    width: 100%;          /* 確保圖表永遠撐滿容器寬度 */
+    height: 280px;
+    margin: 12px 0;
   }
 
-  .chart-wrap{position:relative;height:300px;margin-top:16px;}
+  .filter-row {
+    margin-top: 12px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+
+  /* 篩選項目橫向捲動列（手機不換行，直接滑動） */
+  .filter-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    /* 隱藏捲軸但保留功能 */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .filter-scroll::-webkit-scrollbar { display: none; }
+
+  /* 篩選列內所有按鈕不換行 */
+  .filter-scroll .floor-tabs,
+  .filter-scroll .range-tabs { flex-shrink: 0; flex-wrap: nowrap; }
+  .filter-scroll .custom-range { flex-shrink: 0; flex-wrap: nowrap; }
+
+  /* 範圍提示獨立一行（手機也清楚顯示） */
+  .range-hint {
+    font-size:.72rem; color:var(--amber); font-family:'JetBrains Mono',monospace;
+    background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.2);
+    border-radius:6px; padding:4px 10px; white-space:nowrap;
+    display: inline-block;
+    margin-top: 6px;
+  }
 
   /* Table */
   .tbl-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;}
@@ -139,19 +170,13 @@
   .empty{text-align:center;padding:50px;color:var(--muted);}
   .empty .ico{font-size:2.5rem;margin-bottom:10px;}
   
-  .filter-row {
+  .sec-hdr {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
     flex-wrap: wrap;
-    margin-bottom: 16px;
-    padding: 12px 16px;
-    background: var(--surface2);
-    border-radius: 10px;
-    border: 1px solid var(--border);
-  }
-  .sec-hdr {
-    margin-bottom: 10px;
+    gap: 8px;
+    margin-bottom: 4px;
   }
   
   /* 深淺色切換 switch */
@@ -193,8 +218,9 @@
   }
   
   .switch-icon {
-    font-size: 14px;
+    font-size: .78rem;;
     line-height: 1;
+    color: var(--muted);
   }
 </style>
 </head>
@@ -212,9 +238,8 @@
       <!-- 深淺色切換開關 -->
       <div class="theme-switch" onclick="toggleTheme()" id="theme-btn" title="切換深/淺色模式">
         <div class="switch-track">
-          <span class="switch-icon">🌙</span>
           <div class="switch-thumb"></div>
-          <span class="switch-icon">☀️</span>
+          <span class="switch-icon">深/淺色</span>
         </div>
       </div>
       <div class="status">
@@ -234,6 +259,8 @@
   </div>
   
   <div class="chart-box">
+
+    <!-- 標題列 -->
     <div class="sec-hdr">
       <div class="sec-title">車流趨勢折線圖</div>
       <div class="legend">
@@ -242,34 +269,40 @@
         <div class="leg"><div class="leg-dot" style="background:var(--b1f)"></div>B1F</div>
       </div>
     </div>
-    
-    <!-- 篩選器獨立一排 -->
+
+    <!-- 折線圖（全寬，固定在篩選列上方） -->
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+
+    <!-- 篩選列（圖表下方，手機可橫向捲動） -->
     <div class="filter-row">
-      <div class="floor-tabs">
-        <button class="ftab on" data-f="all" onclick="setFloor('all',this)">全場</button>
-        <button class="ftab"    data-f="B2F" onclick="setFloor('B2F',this)">B2F</button>
-        <button class="ftab"    data-f="B1F" onclick="setFloor('B1F',this)">B1F</button>
-      </div>
-      <div class="range-tabs">
-        <button class="rtab on" onclick="setQuick('all',this)">全部</button>
-        <button class="rtab" onclick="setQuick(24,this)">24 小時</button>
-        <button class="rtab" onclick="setQuick(12,this)">12 小時</button>
-        <button class="rtab" onclick="setQuick(6,this)">6 小時</button>
-        <button class="rtab" onclick="setQuick(3,this)">3 小時</button>
-        <button class="rtab" onclick="setQuick(1,this)">1 小時</button>
-      </div>
-      <div class="filter-divider"></div>
-      <div class="custom-range">
-        <label>自訂</label>
-        <input type="datetime-local" id="dt-start" class="dt-input">
-        <span style="color:var(--muted)">→</span>
-        <input type="datetime-local" id="dt-end" class="dt-input">
-        <button class="apply-btn" onclick="applyCustomRange()">套用</button>
-        <button class="apply-btn" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="clearCustomRange()">清除</button>
+      <div class="filter-scroll">
+        <div class="floor-tabs">
+          <button class="ftab on" data-f="all" onclick="setFloor('all',this)">全場</button>
+          <button class="ftab"    data-f="B2F" onclick="setFloor('B2F',this)">B2F</button>
+          <button class="ftab"    data-f="B1F" onclick="setFloor('B1F',this)">B1F</button>
+        </div>
+        <div class="filter-divider"></div>
+        <div class="range-tabs">
+          <button class="rtab on" onclick="setQuick('all',this)">全部</button>
+          <button class="rtab" onclick="setQuick(24,this)">24H</button>
+          <button class="rtab" onclick="setQuick(12,this)">12H</button>
+          <button class="rtab" onclick="setQuick(6,this)">6H</button>
+          <button class="rtab" onclick="setQuick(3,this)">3H</button>
+          <button class="rtab" onclick="setQuick(1,this)">1H</button>
+        </div>
+        <div class="filter-divider"></div>
+        <div class="custom-range">
+          <label>自訂</label>
+          <input type="datetime-local" id="dt-start" class="dt-input">
+          <span style="color:var(--muted)">→</span>
+          <input type="datetime-local" id="dt-end" class="dt-input">
+          <button class="apply-btn" onclick="applyCustomRange()">套用</button>
+          <button class="apply-btn" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="clearCustomRange()">清除</button>
+        </div>
       </div>
       <div class="range-hint" id="range-hint">顯示全部資料</div>
     </div>
-    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+
   </div>
 
   <div class="tbl-box">
@@ -281,7 +314,7 @@
       <table>
         <thead><tr><th>#</th><th>時間</th><th>B1F</th><th>B2F</th><th>合計</th><th>變化</th><th>滿場率</th></tr></thead>
         <tbody id="tbody">
-          <tr><td colspan="7"><div class="empty"><div class="ico">🔄</div><p>資料載入中…</p></div></td></tr>
+          <tr><td colspan="7"><div class="empty"><div class="ico">⛓️‍💥</div><p>資料載入中…</p></div></td></tr>
         </tbody>
       </table>
     </div>
