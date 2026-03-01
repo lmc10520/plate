@@ -13,9 +13,9 @@
     --b1f:#00d4ff; --b2f:#a78bfa; --total:#34d399; --amber:#f59e0b;
     --danger:#ef4444; --success:#10b981; --muted:#64748b; --text:#e2e8f0;
   }
-  /* 淺色主題變數 */
+  /* 淺色主題變數（紅色系） */
   body.light {
-    --bg: #f0f0f0; --surface: #ffffff; --surface2: #fafafa; --border: #dde1ea;
+    --bg: #f8f9fc; --surface: #ffffff; --surface2: #f0f2f7; --border: #dde1ea;
     --b1f: #ff6263; --b2f: #ff8c42; --total: #059669; --amber: #d97706;
     --danger: #dc2626; --success: #16a34a; --muted: #94a3b8; --text: #1e293b;
   }
@@ -193,9 +193,8 @@
   }
   
   .switch-icon {
-    font-size: .78rem;;
+    font-size: 14px;
     line-height: 1;
-    color: var(--muted);
   }
 </style>
 </head>
@@ -213,8 +212,9 @@
       <!-- 深淺色切換開關 -->
       <div class="theme-switch" onclick="toggleTheme()" id="theme-btn" title="切換深/淺色模式">
         <div class="switch-track">
+          <span class="switch-icon">🌙</span>
           <div class="switch-thumb"></div>
-          <span class="switch-icon">深/淺色</span>
+          <span class="switch-icon">☀️</span>
         </div>
       </div>
       <div class="status">
@@ -236,7 +236,6 @@
   <div class="chart-box">
     <div class="sec-hdr">
       <div class="sec-title">車流趨勢折線圖</div>
-      <div class="chart-wrap"><canvas id="chart"></canvas></div>
       <div class="legend">
         <div class="leg"><div class="leg-dot" style="background:var(--total)"></div>全場合計</div>
         <div class="leg"><div class="leg-dot" style="background:var(--b2f)"></div>B2F</div>
@@ -270,6 +269,7 @@
       </div>
       <div class="range-hint" id="range-hint">顯示全部資料</div>
     </div>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
   </div>
 
   <div class="tbl-box">
@@ -281,7 +281,7 @@
       <table>
         <thead><tr><th>#</th><th>時間</th><th>B1F</th><th>B2F</th><th>合計</th><th>變化</th><th>滿場率</th></tr></thead>
         <tbody id="tbody">
-          <tr><td colspan="7"><div class="empty"><div class="ico">⛓️‍💥</div><p>資料載入中…</p></div></td></tr>
+          <tr><td colspan="7"><div class="empty"><div class="ico">🔄</div><p>資料載入中…</p></div></td></tr>
         </tbody>
       </table>
     </div>
