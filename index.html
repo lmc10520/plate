@@ -281,7 +281,7 @@
             const rawData = await response.json();
             if (rawData && rawData.data) { allData = rawData.data; }
             
-            const now = new Date().toLocaleTimeString();
+            const now = new Date().toLocaleString();
             document.getElementById('status').innerText = `最後更新：${now} (${allData.length} 筆)`;
 
             const occupiedB1 = allData.filter(item => item.Floor === 'B1F' && item.LicensePlate && item.LicensePlate !== "NONE").length;
@@ -299,7 +299,10 @@
 
             updateChart(chartB1, occupiedB1, TOTAL_B1, 'infoB1');
             updateChart(chartB2, occupiedB2, TOTAL_B2, 'infoB2');
-        } catch (e) { document.getElementById('status').innerText = "連線異常"; }
+        } catch (e) { 
+            console.error(e); // 在控制台印出具體錯誤原因
+            document.getElementById('status').innerText = "連線異常，請檢查網路或 API 狀態"; 
+        }
     }
 
     function updateChart(chartObj, occupied, total, infoId) {
@@ -365,6 +368,7 @@
 </script>
 </body>
 </html>
+
 
 
 
