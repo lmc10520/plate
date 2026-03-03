@@ -6,6 +6,8 @@
 <title>停車場車流統計</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.0.1/chartjs-plugin-zoom.min.js"></script>
 <style>
   /* 深色主題變數 */
   :root {
@@ -117,12 +119,48 @@
   }
   .apply-btn:hover{opacity:.85;}
 
+
+  /* 拖拉提示與重置按鈕 */
   .chart-wrap {
     position: relative;
-    width: 100%;          /* 確保圖表永遠撐滿容器寬度 */
+    width: 100%;
     height: 280px;
     margin: 12px 0;
+    cursor: grab;
   }
+  .chart-wrap:active { cursor: grabbing; }
+
+  .chart-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .pan-hint {
+    font-size: .7rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    opacity: 0.7;
+  }
+  .reset-btn {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: .7rem;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .reset-btn:hover {
+    border-color: var(--b1f);
+    color: var(--b1f);
+  }
+
 
   .filter-row {
     margin-top: 12px;
@@ -270,7 +308,15 @@
       </div>
     </div>
 
-    <!-- 折線圖（全寬，固定在篩選列上方） -->
+    <!-- 折線圖工具列 -->
+    <div class="chart-toolbar">
+      <div class="pan-hint">
+        <span>☜☞</span> 拖拉圖表可左右捲動歷史資料
+      </div>
+      <button class="reset-btn" onclick="resetChartView()" title="回到預設視窗">↺ 重置視窗</button>
+    </div>
+
+    <!-- 折線圖（全寬，支援左右拖拉） -->
     <div class="chart-wrap"><canvas id="chart"></canvas></div>
 
     <!-- 篩選列（圖表下方，手機可橫向捲動） -->
@@ -444,9 +490,24 @@ function render() {
   renderTable();
 }
 
-// ── 取得目前主題的顏色（深/淺色版切換時圖表跟著變）──
+// ── 取得目前主題的顏色 ──────────────────────────
 function themeColor(varName) {
   return getComputedStyle(document.body).getPropertyValue(varName).trim();
+}
+
+// ── 計算初始顯示視窗（預設顯示最新 N 筆，其餘可拖拉） ──
+const DEFAULT_VISIBLE = 36; // 預設顯示最新 36 筆（約 6 小時）
+
+function getInitWindow(data) {
+  // 快速按鈕選了特定小時 → 對應筆數作為視窗
+  let visibleCount = DEFAULT_VISIBLE;
+  if (quickHours !== 'all' && quickHours !== null) {
+    visibleCount = Math.min(Number(quickHours) * 6, data.length);
+  } else {
+    visibleCount = Math.min(DEFAULT_VISIBLE, data.length);
+  }
+  const minIdx = Math.max(0, data.length - visibleCount);
+  return { min: minIdx, max: data.length - 1 };
 }
 
 // ── 折線圖 ──────────────────────────────────────
@@ -464,25 +525,25 @@ function renderChart(data) {
     return;
   }
 
-  // 動態讀取 CSS 變數顏色，深/淺色版都正確
-  const colTotal = themeColor('--total');
-  const colB1f   = themeColor('--b1f');
-  const colB2f   = themeColor('--b2f');
-  const colGrid  = document.body.classList.contains('light')
-    ? 'rgba(0,0,0,0.07)' : 'rgba(30,45,69,.6)';
-  const colTick  = document.body.classList.contains('light')
-    ? '#94a3b8' : '#64748b';
-  const colTooltipBg   = document.body.classList.contains('light') ? '#ffffff' : '#1a2234';
-  const colTooltipBody = document.body.classList.contains('light') ? '#1e293b' : '#e2e8f0';
-  const colTooltipBdr  = document.body.classList.contains('light') ? '#dde1ea' : '#1e2d45';
+  const isLight    = document.body.classList.contains('light');
+  const colTotal   = themeColor('--total');
+  const colB1f     = themeColor('--b1f');
+  const colB2f     = themeColor('--b2f');
+  const colGrid    = isLight ? 'rgba(0,0,0,0.07)'  : 'rgba(30,45,69,.6)';
+  const colTick    = isLight ? '#94a3b8'            : '#64748b';
+  const colTipBg   = isLight ? '#ffffff'            : '#1a2234';
+  const colTipBody = isLight ? '#1e293b'            : '#e2e8f0';
+  const colTipBdr  = isLight ? '#dde1ea'            : '#1e2d45';
 
   const labels = data.map(d => d.timestamp.slice(5, 16));
-  const pt = data.length <= 36 ? 3 : 0;
+  // 點的大小：資料量少時顯示點，多時隱藏避免雜亂
+  const pt = data.length <= 72 ? 3 : 0;
 
   const ds = (label, key, color) => ({
     label, data: data.map(d => d[key]),
     borderColor: color, backgroundColor: color + '22',
     borderWidth: 2, pointRadius: pt,
+    pointHoverRadius: 5,
     pointBackgroundColor: color, tension: 0.4, fill: true,
   });
 
@@ -496,6 +557,9 @@ function renderChart(data) {
     ...(showB1  ? [ds('B1F',     'B1F',   colB1f)]   : []),
   ];
 
+  // 初始顯示視窗（快速按鈕決定，其餘可拖拉看）
+  const win = getInitWindow(data);
+
   chart = new Chart(ctx, {
     type: 'line',
     data: { labels, datasets },
@@ -505,17 +569,37 @@ function renderChart(data) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: colTooltipBg,
-          titleColor: colTick,
-          bodyColor: colTooltipBody,
-          borderColor: colTooltipBdr,
+          backgroundColor: colTipBg, titleColor: colTick,
+          bodyColor: colTipBody, borderColor: colTipBdr,
           borderWidth: 1, padding: 12
+        },
+        // ── 拖拉/縮放設定 ──
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'x',           // 只允許左右拖拉，Y 軸固定不動
+            threshold: 5,        // 拖拉靈敏度（像素）
+          },
+          zoom: {
+            wheel: { enabled: false },   // 關閉滾輪縮放，避免誤觸
+            pinch: { enabled: false },   // 關閉雙指縮放
+            mode: 'x',
+          },
+          limits: {
+            x: { min: 'original', max: 'original' }  // 不可拖出資料範圍外
+          }
         }
       },
       scales: {
         x: {
+          min: win.min,   // 初始顯示視窗起點
+          max: win.max,   // 初始顯示視窗終點
           grid: { color: colGrid },
-          ticks: { color: colTick, font: { family: 'JetBrains Mono', size: 11 }, maxTicksLimit: 12, maxRotation: 30 }
+          ticks: {
+            color: colTick,
+            font: { family: 'JetBrains Mono', size: 11 },
+            maxTicksLimit: 10, maxRotation: 30
+          }
         },
         y: {
           grid: { color: colGrid },
@@ -525,6 +609,18 @@ function renderChart(data) {
       }
     }
   });
+}
+
+// ── 重置圖表視窗回預設 ──────────────────────────
+function resetChartView() {
+  if (!chart) return;
+  chart.resetZoom();
+  // 重新套用初始視窗
+  const data = getFiltered();
+  const win = getInitWindow(data);
+  chart.options.scales.x.min = win.min;
+  chart.options.scales.x.max = win.max;
+  chart.update();
 }
 
 // ── 資料表格 ────────────────────────────────────
