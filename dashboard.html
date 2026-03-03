@@ -6,8 +6,6 @@
 <title>停車場車流統計</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://unpkg.com/hammerjs@2.0.8/hammer.min.js"></script>
-<script src="https://unpkg.com/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
   /* 深色主題變數 */
   :root {
@@ -186,6 +184,10 @@
   .filter-scroll .range-tabs { flex-shrink: 0; flex-wrap: nowrap; }
   .filter-scroll .custom-range { flex-shrink: 0; flex-wrap: nowrap; }
 
+  /* 拖拉游標 */
+  #chart { cursor: grab; }
+  #chart:active { cursor: grabbing; }
+
   /* 範圍提示獨立一行（手機也清楚顯示） */
   .range-hint {
     font-size:.72rem; color:var(--amber); font-family:'JetBrains Mono',monospace;
@@ -318,6 +320,11 @@
 
     <!-- 折線圖（全寬，支援左右拖拉） -->
     <div class="chart-wrap"><canvas id="chart"></canvas></div>
+
+    <!-- 拖拉進度條 -->
+    <div id="pan-scrollbar" style="display:none;position:relative;height:6px;background:var(--surface2);border-radius:3px;margin:6px 0 2px;">
+      <div id="pan-thumb" style="position:absolute;height:100%;background:var(--b1f);border-radius:3px;opacity:0.5;transition:left 0.05s;"></div>
+    </div>
 
     <!-- 篩選列（圖表下方，手機可橫向捲動） -->
     <div class="filter-row">
@@ -495,25 +502,44 @@ function themeColor(varName) {
   return getComputedStyle(document.body).getPropertyValue(varName).trim();
 }
 
-// ── 計算初始顯示視窗（回傳標籤字串，plugin-zoom 需要） ──
-function getInitWindow(data) {
-  let visibleCount = data.length;
+// ── 拖拉狀態 ──────────────────────────────────────
+let panState = null;      // 拖拉時的起始狀態
+let chartData = [];       // 目前圖表使用的完整資料
+let viewStart = 0;        // 目前可視視窗起始索引
+let VIEW_SIZE = 36;       // 預設視窗大小（筆數）
+
+// ── 計算視窗大小（依快速按鈕） ──────────────────
+function calcViewSize() {
   if (quickHours !== 'all' && quickHours !== null) {
-    visibleCount = Math.min(Number(quickHours) * 6, data.length);
+    return Math.min(Number(quickHours) * 6, chartData.length);
   }
-  const minIdx = Math.max(0, data.length - visibleCount);
-  return {
-    minLabel: data[minIdx].timestamp.slice(5, 16),
-    maxLabel: data[data.length - 1].timestamp.slice(5, 16)
-  };
+  return Math.min(36, chartData.length); // 預設顯示 36 筆（約 6 小時）
+}
+
+// ── 取出目前視窗的資料切片 ──────────────────────
+function getViewSlice() {
+  const size = VIEW_SIZE;
+  const start = Math.max(0, Math.min(viewStart, chartData.length - size));
+  return chartData.slice(start, start + size);
 }
 
 // ── 折線圖 ──────────────────────────────────────
 function renderChart(data) {
+  chartData = data;
+  VIEW_SIZE = calcViewSize();
+  // 預設捲到最新資料
+  viewStart = Math.max(0, chartData.length - VIEW_SIZE);
+  drawChart();
+  setupPan();
+}
+
+function drawChart() {
   const ctx = document.getElementById('chart').getContext('2d');
   if (chart) chart.destroy();
 
-  if (!data.length) {
+  const slice = getViewSlice();
+
+  if (!slice.length) {
     chart = null;
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.fillStyle = '#64748b';
@@ -533,12 +559,11 @@ function renderChart(data) {
   const colTipBody = isLight ? '#1e293b'            : '#e2e8f0';
   const colTipBdr  = isLight ? '#dde1ea'            : '#1e2d45';
 
-  const labels = data.map(d => d.timestamp.slice(5, 16));
-  // 點的大小：資料量少時顯示點，多時隱藏避免雜亂
-  const pt = data.length <= 72 ? 3 : 0;
+  const labels = slice.map(d => d.timestamp.slice(5, 16));
+  const pt = slice.length <= 72 ? 3 : 0;
 
   const ds = (label, key, color) => ({
-    label, data: data.map(d => d[key]),
+    label, data: slice.map(d => d[key]),
     borderColor: color, backgroundColor: color + '22',
     borderWidth: 2, pointRadius: pt,
     pointHoverRadius: 5,
@@ -555,14 +580,12 @@ function renderChart(data) {
     ...(showB1  ? [ds('B1F',     'B1F',   colB1f)]   : []),
   ];
 
-  // 初始顯示視窗（快速按鈕決定，其餘可拖拉看）
-  const win = getInitWindow(data);
-
   chart = new Chart(ctx, {
     type: 'line',
     data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
+      animation: false,   // 拖拉時關閉動畫，避免卡頓
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
@@ -570,32 +593,12 @@ function renderChart(data) {
           backgroundColor: colTipBg, titleColor: colTick,
           bodyColor: colTipBody, borderColor: colTipBdr,
           borderWidth: 1, padding: 12
-        },
-        // ── 拖拉/縮放設定 ──
-        zoom: {
-          pan: {
-            enabled: true,
-            mode: 'x',           // 只允許左右拖拉，Y 軸固定不動
-            threshold: 5,        // 拖拉靈敏度（像素）
-          },
-          zoom: {
-            wheel: { enabled: false },   // 關閉滾輪縮放，避免誤觸
-            pinch: { enabled: false },   // 關閉雙指縮放
-            mode: 'x',
-          },
-
         }
       },
       scales: {
         x: {
-          min: win.minLabel,
-          max: win.maxLabel,
           grid: { color: colGrid },
-          ticks: {
-            color: colTick,
-            font: { family: 'JetBrains Mono', size: 11 },
-            maxTicksLimit: 10, maxRotation: 30
-          }
+          ticks: { color: colTick, font: { family: 'JetBrains Mono', size: 11 }, maxTicksLimit: 10, maxRotation: 30 }
         },
         y: {
           grid: { color: colGrid },
@@ -605,18 +608,84 @@ function renderChart(data) {
       }
     }
   });
+
+  // 更新捲動進度條
+  updateScrollbar();
 }
 
-// ── 重置圖表視窗回預設 ──────────────────────────
+// ── 拖拉事件綁定（滑鼠 + 觸控） ────────────────
+function setupPan() {
+  const canvas = document.getElementById('chart');
+  if (!canvas) return;
+
+  // 移除舊的事件（避免重複綁定）
+  canvas.replaceWith(canvas.cloneNode(true));
+  const c = document.getElementById('chart');
+
+  let startX = null;
+  let startViewStart = 0;
+  // 每 px 對應幾筆資料（依視窗寬度和視窗大小計算）
+  function pxPerItem() {
+    return c.offsetWidth / VIEW_SIZE;
+  }
+
+  // 滑鼠事件
+  c.addEventListener('mousedown', e => {
+    startX = e.clientX;
+    startViewStart = viewStart;
+    c.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e => {
+    if (startX === null) return;
+    const dx = e.clientX - startX;
+    const shift = Math.round(-dx / pxPerItem());
+    viewStart = Math.max(0, Math.min(startViewStart + shift, chartData.length - VIEW_SIZE));
+    drawChart();
+  });
+  window.addEventListener('mouseup', () => {
+    if (startX === null) return;
+    startX = null;
+    c.style.cursor = 'grab';
+  });
+
+  // 觸控事件（手機）
+  c.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startViewStart = viewStart;
+    e.preventDefault();
+  }, { passive: false });
+  c.addEventListener('touchmove', e => {
+    if (startX === null) return;
+    const dx = e.touches[0].clientX - startX;
+    const shift = Math.round(-dx / pxPerItem());
+    viewStart = Math.max(0, Math.min(startViewStart + shift, chartData.length - VIEW_SIZE));
+    drawChart();
+    e.preventDefault();
+  }, { passive: false });
+  c.addEventListener('touchend', () => { startX = null; });
+}
+
+// ── 捲動進度條更新 ──────────────────────────────
+function updateScrollbar() {
+  const bar = document.getElementById('pan-scrollbar');
+  const thumb = document.getElementById('pan-thumb');
+  if (!bar || !thumb || !chartData.length) return;
+  const total = chartData.length;
+  const size  = VIEW_SIZE;
+  if (size >= total) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  const thumbW = Math.max(10, (size / total) * 100);
+  const thumbL = (viewStart / (total - size)) * (100 - thumbW);
+  thumb.style.width = thumbW + '%';
+  thumb.style.left  = thumbL + '%';
+}
+
+// ── 重置圖表視窗回最新 ──────────────────────────
 function resetChartView() {
-  if (!chart) return;
-  chart.resetZoom();
-  // 重新套用初始視窗
-  const data = getFiltered();
-  const win = getInitWindow(data);
-  chart.options.scales.x.min = win.minLabel;
-  chart.options.scales.x.max = win.maxLabel;
-  chart.update();
+  if (!chartData.length) return;
+  viewStart = Math.max(0, chartData.length - VIEW_SIZE);
+  drawChart();
 }
 
 // ── 資料表格 ────────────────────────────────────
