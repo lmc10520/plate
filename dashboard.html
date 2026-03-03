@@ -199,9 +199,14 @@
 
   /* Table */
   .tbl-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;}
-  .tbl-scroll{overflow-x:auto;max-height:360px;overflow-y:auto;}
+  .tbl-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);}
+  .tbl-toolbar label{font-size:.72rem;color:var(--muted);white-space:nowrap;}
+  .tbl-scroll{overflow-x:auto;max-height:480px;overflow-y:auto;}
   table{width:100%;border-collapse:collapse;font-size:.83rem;}
-  thead th{padding:9px 14px;text-align:left;font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;}
+  thead th{padding:9px 14px;text-align:left;font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;cursor:pointer;user-select:none;white-space:nowrap;}
+  thead th:hover{color:var(--text);}
+  thead th .si{margin-left:3px;opacity:.3;font-size:.85em;}
+  thead th.asc .si,thead th.desc .si{opacity:1;color:var(--b1f);}
   tbody tr{border-bottom:1px solid rgba(30,45,69,.5);transition:background .15s;}
   tbody tr:hover{background:var(--surface2);}
   tbody td{padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:.81rem;}
@@ -209,6 +214,15 @@
   .cup{color:var(--danger);} .cdn{color:var(--success);} .csm{color:var(--muted);}
   .empty{text-align:center;padding:50px;color:var(--muted);}
   .empty .ico{font-size:2.5rem;margin-bottom:10px;}
+  .tbl-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  .page-info{font-size:.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+  .page-btns{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+  .pg{padding:4px 10px;border-radius:6px;font-size:.72rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;}
+  .pg:hover:not([disabled]){border-color:var(--b1f);color:var(--b1f);}
+  .pg[disabled]{opacity:.3;cursor:not-allowed;}
+  .pg.on{background:var(--b1f);color:#000;border-color:var(--b1f);font-weight:600;}
+  .dl-btn{padding:5px 14px;border-radius:8px;font-size:.75rem;font-weight:600;background:linear-gradient(135deg,var(--total),var(--b1f));color:#000;border:none;cursor:pointer;white-space:nowrap;transition:opacity .2s;}
+  .dl-btn:hover{opacity:.85;}
   
   .sec-hdr {
     display: flex;
@@ -354,17 +368,46 @@
   </div>
 
   <div class="tbl-box">
-    <div class="sec-hdr">
-      <div class="sec-title">詳細資料記錄</div>
+    <div class="sec-hdr" style="margin-bottom:12px;">
+      <div class="sec-title">&#x1F4CB; 詳細資料記錄</div>
       <span style="font-size:.78rem;color:var(--muted)" id="rec-cnt">共 0 筆</span>
     </div>
+
+    <!-- 表格工具列：時間篩選 + 下載 -->
+    <div class="tbl-toolbar">
+      <label>表格區間</label>
+      <input type="datetime-local" id="tbl-start" class="dt-input">
+      <span style="color:var(--muted);font-size:.8rem">&#x2192;</span>
+      <input type="datetime-local" id="tbl-end" class="dt-input">
+      <button class="apply-btn" onclick="applyTblFilter()">套用</button>
+      <button class="apply-btn" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="clearTblFilter()">清除</button>
+      <div style="flex:1;min-width:8px"></div>
+      <button class="dl-btn" onclick="downloadCSV()">&#x2B07; 下載 CSV</button>
+    </div>
+
     <div class="tbl-scroll">
       <table>
-        <thead><tr><th>#</th><th>時間</th><th>B1F</th><th>B2F</th><th>合計</th><th>變化</th><th>滿場率</th></tr></thead>
+        <thead>
+          <tr>
+            <th onclick="sortTable('idx')"   id="th-idx"  >#<span class="si">&#x21C5;</span></th>
+            <th onclick="sortTable('time')"  id="th-time" >時間<span class="si">&#x21C5;</span></th>
+            <th onclick="sortTable('b1f')"   id="th-b1f"  >B1F<span class="si">&#x21C5;</span></th>
+            <th onclick="sortTable('b2f')"   id="th-b2f"  >B2F<span class="si">&#x21C5;</span></th>
+            <th onclick="sortTable('total')" id="th-total">合計<span class="si">&#x21C5;</span></th>
+            <th>變化</th>
+            <th onclick="sortTable('rate')"  id="th-rate" >滿場率<span class="si">&#x21C5;</span></th>
+          </tr>
+        </thead>
         <tbody id="tbody">
-          <tr><td colspan="7"><div class="empty"><div class="ico">⛓️‍💥</div><p>資料載入中…</p></div></td></tr>
+          <tr><td colspan="7"><div class="empty"><div class="ico">&#x23F3;</div><p>資料載入中…</p></div></td></tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- 分頁列 -->
+    <div class="tbl-footer">
+      <div class="page-info" id="page-info"></div>
+      <div class="page-btns" id="page-btns"></div>
     </div>
   </div>
     <div>
@@ -699,22 +742,125 @@ function resetChartView() {
   drawChart();
 }
 
-// ── 資料表格 ────────────────────────────────────
+// ══════════════════════════════════════════════════
+// 表格模組（支援排序、分頁、時間篩選、CSV下載）
+// ══════════════════════════════════════════════════
+const TBL_PAGE_SIZE    = 200;   // 每頁顯示筆數
+const TBL_DEFAULT_HOURS = 168;  // 預設顯示最近 168 小時
+
+let tblData        = [];
+let tblPage        = 1;
+let tblSortKey     = 'time';
+let tblSortAsc     = false;   // 降冪（最新在前）
+let tblFilterStart = null;
+let tblFilterEnd   = null;
+
+// ── 表格篩選套用 / 清除 ──────────────────────────
+function applyTblFilter() {
+  const s = document.getElementById('tbl-start').value;
+  const e = document.getElementById('tbl-end').value;
+  if (!s && !e) { alert('請至少輸入開始或結束時間'); return; }
+  tblFilterStart = s ? new Date(s) : null;
+  tblFilterEnd   = e ? new Date(e) : null;
+  tblPage = 1;
+  renderTable();
+}
+
+function clearTblFilter() {
+  tblFilterStart = null;
+  tblFilterEnd   = null;
+  document.getElementById('tbl-start').value = '';
+  document.getElementById('tbl-end').value   = '';
+  tblPage = 1;
+  renderTable();
+}
+
+// ── 排序 ────────────────────────────────────────
+function sortTable(key) {
+  if (tblSortKey === key) {
+    tblSortAsc = !tblSortAsc;
+  } else {
+    tblSortKey = key;
+    tblSortAsc = (key !== 'time');
+  }
+  ['idx','time','b1f','b2f','total','rate'].forEach(k => {
+    const el = document.getElementById('th-' + k);
+    if (!el) return;
+    el.classList.remove('asc','desc');
+    if (k === key) el.classList.add(tblSortAsc ? 'asc' : 'desc');
+  });
+  tblPage = 1;
+  renderTable();
+}
+
+// ── 取得篩選+排序後的表格資料 ──────────────────
+function getTblData() {
+  let base = [...allData];
+
+  if (tblFilterStart || tblFilterEnd) {
+    base = base.filter(d => {
+      const t = new Date(d.timestamp.replace(' ','T'));
+      if (tblFilterStart && t < tblFilterStart) return false;
+      if (tblFilterEnd   && t > tblFilterEnd)   return false;
+      return true;
+    });
+  } else {
+    // 預設：最近 168 小時（避免巨量資料卡住畫面）
+    const cut = new Date(Date.now() - TBL_DEFAULT_HOURS * 3600000);
+    base = base.filter(d => new Date(d.timestamp.replace(' ','T')) >= cut);
+  }
+
+  base.sort((a, b) => {
+    let va, vb;
+    const ai = allData.indexOf(a), bi = allData.indexOf(b);
+    switch (tblSortKey) {
+      case 'idx':   va = ai;      vb = bi;      break;
+      case 'time':  va = new Date(a.timestamp.replace(' ','T'));
+                    vb = new Date(b.timestamp.replace(' ','T')); break;
+      case 'b1f':   va = a.B1F;   vb = b.B1F;   break;
+      case 'b2f':   va = a.B2F;   vb = b.B2F;   break;
+      case 'total':
+      case 'rate':  va = a.total; vb = b.total; break;
+      default: return 0;
+    }
+    if (va < vb) return tblSortAsc ? -1 : 1;
+    if (va > vb) return tblSortAsc ?  1 : -1;
+    return 0;
+  });
+
+  return base;
+}
+
+// ── 主渲染 ──────────────────────────────────────
 function renderTable() {
-  const tbody = document.getElementById('tbody');
-  const rev = [...allData].reverse();
-  if (!rev.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ico">🔄</div><p>資料載入中…</p></div></td></tr>';
+  tblData = getTblData();
+  const tbody    = document.getElementById('tbody');
+  const pageInfo = document.getElementById('page-info');
+  const pageBtns = document.getElementById('page-btns');
+
+  document.getElementById('rec-cnt').textContent =
+    `全部 ${allData.length.toLocaleString()} 筆｜表格 ${tblData.length.toLocaleString()} 筆`;
+
+  if (!tblData.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ico">&#x1F50D;</div><p>此區間無資料</p></div></td></tr>';
+    if (pageInfo) pageInfo.textContent = '';
+    if (pageBtns) pageBtns.innerHTML  = '';
     return;
   }
-  tbody.innerHTML = rev.map((row, i) => {
-    const origIdx = allData.length - 1 - i;
+
+  const totalPages = Math.ceil(tblData.length / TBL_PAGE_SIZE);
+  tblPage = Math.max(1, Math.min(tblPage, totalPages));
+  const sliceStart = (tblPage - 1) * TBL_PAGE_SIZE;
+  const pageData   = tblData.slice(sliceStart, sliceStart + TBL_PAGE_SIZE);
+
+  tbody.innerHTML = pageData.map(row => {
+    const origIdx = allData.indexOf(row);
     const prev = allData[origIdx - 1];
     let ch = '—', cc = 'csm';
-    if (prev) {
-      const d = row.total - prev.total;
-      if (d > 0)      { ch = `▲ ${d}`;          cc = 'cup'; }
-      else if (d < 0) { ch = `▼ ${Math.abs(d)}`; cc = 'cdn'; }
+    if (prev !== undefined) {
+      const diff = row.total - prev.total;
+      if (diff > 0)      { ch = `&#x25B2; ${diff}`;              cc = 'cup'; }
+      else if (diff < 0) { ch = `&#x25BC; ${Math.abs(diff)}`;    cc = 'cdn'; }
     }
     return `<tr>
       <td style="color:var(--muted)">${origIdx + 1}</td>
@@ -726,6 +872,63 @@ function renderTable() {
       <td style="color:var(--amber)">${(row.total/TOTAL*100).toFixed(1)}%</td>
     </tr>`;
   }).join('');
+
+  // 分頁資訊
+  if (pageInfo) pageInfo.textContent =
+    `第 ${tblPage} / ${totalPages} 頁（第 ${sliceStart+1}–${Math.min(sliceStart+TBL_PAGE_SIZE, tblData.length)} 筆）`;
+
+  // 分頁按鈕
+  if (pageBtns) {
+    const pages = buildPageNums(tblPage, totalPages);
+    pageBtns.innerHTML = [
+      `<button class="pg" onclick="gotoPage(${tblPage-1})" ${tblPage===1?'disabled':''}>&#x2039;</button>`,
+      ...pages.map(p => p === '…'
+        ? `<span style="color:var(--muted);padding:0 4px">…</span>`
+        : `<button class="pg ${p===tblPage?'on':''}" onclick="gotoPage(${p})">${p}</button>`),
+      `<button class="pg" onclick="gotoPage(${tblPage+1})" ${tblPage===totalPages?'disabled':''}>&#x203A;</button>`,
+    ].join('');
+  }
+}
+
+function buildPageNums(cur, total) {
+  const pages = [];
+  pages.push(1);
+  const lo = Math.max(2, cur - 2);
+  const hi = Math.min(total - 1, cur + 2);
+  if (lo > 2)    pages.push('…');
+  for (let p = lo; p <= hi; p++) pages.push(p);
+  if (hi < total - 1) pages.push('…');
+  if (total > 1) pages.push(total);
+  return pages;
+}
+
+function gotoPage(p) {
+  tblPage = p;
+  renderTable();
+  const box = document.querySelector('.tbl-box');
+  if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── 下載 CSV ────────────────────────────────────
+function downloadCSV() {
+  const data = tblData.length ? tblData : getTblData();
+  if (!data.length) { alert('目前無資料可下載'); return; }
+
+  const header = ['序號','時間','B1F','B2F','合計','滿場率(%)'];
+  const rows = data.map(row => {
+    const idx = allData.indexOf(row) + 1;
+    return [idx, row.timestamp, row.B1F, row.B2F, row.total,
+            (row.total/TOTAL*100).toFixed(1)].join(',');
+  });
+
+  const csv  = [header.join(','), ...rows].join('
+');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const ts   = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
+  a.href = url; a.download = `parking_${ts}.csv`; a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ── 初始化 datetime-local 預設值 ───────────────
@@ -740,6 +943,10 @@ function initDateInputs() {
   eEl.min = first; eEl.max = last;
   if (!sEl.value) sEl.value = first;
   if (!eEl.value) eEl.value = last;
+  const tblS = document.getElementById('tbl-start');
+  const tblE = document.getElementById('tbl-end');
+  if (tblS) { tblS.min = first; tblS.max = last; }
+  if (tblE) { tblE.min = first; tblE.max = last; }
 }
 
 // ── 資料載入 ────────────────────────────────────
