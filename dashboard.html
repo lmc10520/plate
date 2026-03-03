@@ -6,6 +6,8 @@
 <title>停車場車流統計</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <script src="https://unpkg.com/hammerjs@2.0.8/hammer.min.js"></script>
 <script src="https://unpkg.com/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
@@ -396,7 +398,6 @@ function getFiltered() {
   // 快速按鈕
   if (quickHours === 'all') return allData;
   const cut = new Date(Date.now() - Number(quickHours) * 3600000);
-  // timestamp 格式 "2026-03-01 18:00" → 加 T 讓各瀏覽器正確解析為本地時間
   return allData.filter(d => new Date(d.timestamp.replace(' ', 'T')) >= cut);
 }
 
@@ -420,7 +421,6 @@ function applyCustomRange() {
 
   if (!s && !e) { alert('請至少輸入開始或結束時間'); return; }
 
-  // datetime-local 回傳 "2026-02-28T10:00" 格式，直接 new Date() 即可
   customStart = s ? new Date(s) : null;
   customEnd   = e ? new Date(e) : null;
 
@@ -464,8 +464,6 @@ function updateHint() {
   } else {
     hint.textContent = `最近 ${quickHours} 小時`;
   }
-  // 同步更新進度條提示
-  updateScrollbar();
 }
 
 // ── 樓層切換 ────────────────────────────────────
@@ -500,35 +498,33 @@ function themeColor(varName) {
 }
 
 // ── 拖拉狀態（全域，只初始化一次） ─────────────
-let chartData    = [];   // 目前圖表的完整資料
-let viewStart    = 0;    // 目前可視視窗起始索引
-let VIEW_SIZE    = 36;   // 視窗大小（筆數）
+let chartData    = [];
+let viewStart    = 0;
+let VIEW_SIZE    = 36;
 let panStartX    = null;
 let panStartView = 0;
 let panInited    = false;
 
-// 視窗大小依快速按鈕計算
 function calcViewSize(dataLen) {
   if (quickHours !== 'all' && quickHours !== null) {
     return Math.min(Number(quickHours) * 6, dataLen);
   }
-  return Math.min(36, dataLen); // 預設 36 筆 ≈ 6 小時
+  return Math.min(36, dataLen);
 }
 
-// 取出目前視窗切片
 function getViewSlice() {
   const start = Math.max(0, Math.min(viewStart, chartData.length - VIEW_SIZE));
   return chartData.slice(start, start + VIEW_SIZE);
 }
 
-// ── 折線圖主入口（資料變更時呼叫） ─────────────
+// ── 折線圖主入口 ────────────────────────────────
 function renderChart(data) {
-  chartData  = data;
-  VIEW_SIZE  = calcViewSize(data.length);
-  viewStart  = Math.max(0, data.length - VIEW_SIZE); // 預設顯示最新資料
-  drawChart();       // 畫圖
-  setupPan();        // 綁定拖拉（只綁一次）
-  updateScrollbar(); // 更新進度條
+  chartData = data;
+  VIEW_SIZE = calcViewSize(data.length);
+  viewStart = Math.max(0, data.length - VIEW_SIZE);
+  drawChart();
+  setupPan();
+  updateScrollbar();
 }
 
 // ── 實際繪圖（拖拉時重複呼叫） ─────────────────
@@ -561,11 +557,15 @@ function drawChart() {
   const colTipBody = isLight ? '#1e293b'           : '#e2e8f0';
   const colTipBdr  = isLight ? '#dde1ea'           : '#1e2d45';
 
-  const labels = slice.map(d => d.timestamp.slice(5, 16));
-  const pt     = slice.length <= 72 ? 3 : 0;
+  // ── 用真實時間作為 x 軸資料（讓間距反映實際時間差） ──
+  const pt = slice.length <= 72 ? 3 : 0;
 
   const ds = (label, key, color) => ({
-    label, data: slice.map(d => d[key]),
+    label,
+    data: slice.map(d => ({
+      x: d.timestamp.replace(' ', 'T'),  // ISO 格式，time 軸可正確解析
+      y: d[key]
+    })),
     borderColor: color, backgroundColor: color + '22',
     borderWidth: 2, pointRadius: pt, pointHoverRadius: 5,
     pointBackgroundColor: color, tension: 0.4, fill: true,
@@ -578,7 +578,6 @@ function drawChart() {
   chart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels,
       datasets: [
         ...(showAll ? [ds('全場合計', 'total', colTotal)] : []),
         ...(showB2  ? [ds('B2F',     'B2F',   colB2f)]   : []),
@@ -587,20 +586,46 @@ function drawChart() {
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      animation: false,  // 關閉動畫讓拖拉順暢
+      animation: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
           backgroundColor: colTipBg, titleColor: colTick,
           bodyColor: colTipBody, borderColor: colTipBdr,
-          borderWidth: 1, padding: 12
+          borderWidth: 1, padding: 12,
+          callbacks: {
+            // tooltip 標題顯示台灣時間 MM/DD HH:mm
+            title: items => {
+              const raw = items[0]?.raw?.x;
+              if (!raw) return '';
+              const d = new Date(raw);
+              const mm = String(d.getMonth()+1).padStart(2,'0');
+              const dd = String(d.getDate()).padStart(2,'0');
+              const hh = String(d.getHours()).padStart(2,'0');
+              const mi = String(d.getMinutes()).padStart(2,'0');
+              return mm+'/'+dd+' '+hh+':'+mi;
+            }
+          }
         }
       },
       scales: {
         x: {
+          type: 'time',                  // ← 真實時間軸
+          time: {
+            displayFormats: {
+              minute: 'HH:mm',
+              hour:   'MM/dd HH:mm',
+              day:    'MM/dd',
+            }
+          },
           grid: { color: colGrid },
-          ticks: { color: colTick, font: { family: 'JetBrains Mono', size: 11 }, maxTicksLimit: 10, maxRotation: 30 }
+          ticks: {
+            color: colTick,
+            font: { family: 'JetBrains Mono', size: 11 },
+            maxTicksLimit: 10, maxRotation: 30,
+            source: 'auto',
+          }
         },
         y: {
           grid: { color: colGrid },
@@ -613,7 +638,7 @@ function drawChart() {
   updateScrollbar();
 }
 
-// ── 拖拉事件（掛在外層 div，只綁一次） ─────────
+// ── 拖拉事件（只綁一次） ────────────────────────
 function setupPan() {
   if (panInited) return;
   panInited = true;
@@ -622,15 +647,11 @@ function setupPan() {
 
   function doPan(dx) {
     const pxPerItem = wrap.offsetWidth / Math.max(1, VIEW_SIZE);
-    const shift = Math.round(-dx / pxPerItem);
-    const newStart = Math.max(0, Math.min(panStartView + shift, chartData.length - VIEW_SIZE));
-    if (newStart !== viewStart) {
-      viewStart = newStart;
-      drawChart();
-    }
+    const shift     = Math.round(-dx / pxPerItem);
+    const newStart  = Math.max(0, Math.min(panStartView + shift, chartData.length - VIEW_SIZE));
+    if (newStart !== viewStart) { viewStart = newStart; drawChart(); }
   }
 
-  // 滑鼠
   wrap.addEventListener('mousedown', e => {
     panStartX = e.clientX; panStartView = viewStart;
     wrap.style.cursor = 'grabbing'; e.preventDefault();
@@ -644,7 +665,6 @@ function setupPan() {
     panStartX = null; wrap.style.cursor = 'grab';
   });
 
-  // 觸控
   wrap.addEventListener('touchstart', e => {
     panStartX = e.touches[0].clientX; panStartView = viewStart;
     e.preventDefault();
@@ -672,7 +692,7 @@ function updateScrollbar() {
   thumb.style.left  = leftPct  + '%';
 }
 
-// ── 重置視窗到最新資料 ──────────────────────────
+// ── 重置視窗 ────────────────────────────────────
 function resetChartView() {
   if (!chartData.length) return;
   viewStart = Math.max(0, chartData.length - VIEW_SIZE);
@@ -708,17 +728,16 @@ function renderTable() {
   }).join('');
 }
 
-// ── 初始化 datetime-local 預設值與範圍限制 ────
+// ── 初始化 datetime-local 預設值 ───────────────
 function initDateInputs() {
   if (!allData.length) return;
+  // 預設顯示資料的最早與最晚時間，方便使用者知道可選範圍
   const first = allData[0].timestamp.replace(' ', 'T').slice(0, 16);
   const last  = allData[allData.length - 1].timestamp.replace(' ', 'T').slice(0, 16);
   const sEl = document.getElementById('dt-start');
   const eEl = document.getElementById('dt-end');
-  // min/max 限制選擇範圍
-  sEl.min = first;  sEl.max = last;
-  eEl.min = first;  eEl.max = last;
-  // 預設值：開始=最早一筆，結束=最新一筆（讓使用者一眼看到正確年份）
+  sEl.min = first; sEl.max = last;
+  eEl.min = first; eEl.max = last;
   if (!sEl.value) sEl.value = first;
   if (!eEl.value) eEl.value = last;
 }
