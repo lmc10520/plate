@@ -495,19 +495,17 @@ function themeColor(varName) {
   return getComputedStyle(document.body).getPropertyValue(varName).trim();
 }
 
-// ── 計算初始顯示視窗（預設顯示最新 N 筆，其餘可拖拉） ──
-const DEFAULT_VISIBLE = 36; // 預設顯示最新 36 筆（約 6 小時）
-
+// ── 計算初始顯示視窗（回傳標籤字串，plugin-zoom 需要） ──
 function getInitWindow(data) {
-  // 快速按鈕選了特定小時 → 對應筆數作為視窗
-  let visibleCount = DEFAULT_VISIBLE;
+  let visibleCount = data.length;
   if (quickHours !== 'all' && quickHours !== null) {
     visibleCount = Math.min(Number(quickHours) * 6, data.length);
-  } else {
-    visibleCount = Math.min(DEFAULT_VISIBLE, data.length);
   }
   const minIdx = Math.max(0, data.length - visibleCount);
-  return { min: minIdx, max: data.length - 1 };
+  return {
+    minLabel: data[minIdx].timestamp.slice(5, 16),
+    maxLabel: data[data.length - 1].timestamp.slice(5, 16)
+  };
 }
 
 // ── 折線圖 ──────────────────────────────────────
@@ -585,15 +583,13 @@ function renderChart(data) {
             pinch: { enabled: false },   // 關閉雙指縮放
             mode: 'x',
           },
-          limits: {
-            x: { min: 'original', max: 'original' }  // 不可拖出資料範圍外
-          }
+
         }
       },
       scales: {
         x: {
-          min: win.min,   // 初始顯示視窗起點
-          max: win.max,   // 初始顯示視窗終點
+          min: win.minLabel,
+          max: win.maxLabel,
           grid: { color: colGrid },
           ticks: {
             color: colTick,
@@ -618,8 +614,8 @@ function resetChartView() {
   // 重新套用初始視窗
   const data = getFiltered();
   const win = getInitWindow(data);
-  chart.options.scales.x.min = win.min;
-  chart.options.scales.x.max = win.max;
+  chart.options.scales.x.min = win.minLabel;
+  chart.options.scales.x.max = win.maxLabel;
   chart.update();
 }
 
