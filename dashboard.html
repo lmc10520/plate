@@ -6,6 +6,8 @@
 <title>停車場車流統計</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://unpkg.com/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://unpkg.com/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
   /* 深色主題變數 */
   :root {
@@ -184,10 +186,6 @@
   .filter-scroll .range-tabs { flex-shrink: 0; flex-wrap: nowrap; }
   .filter-scroll .custom-range { flex-shrink: 0; flex-wrap: nowrap; }
 
-  /* 拖拉游標 */
-  #chart { cursor: grab; }
-  #chart:active { cursor: grabbing; }
-
   /* 範圍提示獨立一行（手機也清楚顯示） */
   .range-hint {
     font-size:.72rem; color:var(--amber); font-family:'JetBrains Mono',monospace;
@@ -321,11 +319,6 @@
     <!-- 折線圖（全寬，支援左右拖拉） -->
     <div class="chart-wrap"><canvas id="chart"></canvas></div>
 
-    <!-- 拖拉進度條 -->
-    <div id="pan-scrollbar" style="display:none;position:relative;height:6px;background:var(--surface2);border-radius:3px;margin:6px 0 2px;">
-      <div id="pan-thumb" style="position:absolute;height:100%;background:var(--b1f);border-radius:3px;opacity:0.5;transition:left 0.05s;"></div>
-    </div>
-
     <!-- 篩選列（圖表下方，手機可橫向捲動） -->
     <div class="filter-row">
       <div class="filter-scroll">
@@ -394,7 +387,7 @@ function getFiltered() {
   // 自訂區間優先
   if (customStart || customEnd) {
     return allData.filter(d => {
-      const t = new Date(d.timestamp);
+      const t = new Date(d.timestamp.replace(' ', 'T'));
       if (customStart && t < customStart) return false;
       if (customEnd   && t > customEnd)   return false;
       return true;
@@ -403,7 +396,8 @@ function getFiltered() {
   // 快速按鈕
   if (quickHours === 'all') return allData;
   const cut = new Date(Date.now() - Number(quickHours) * 3600000);
-  return allData.filter(d => new Date(d.timestamp) >= cut);
+  // timestamp 格式 "2026-03-01 18:00" → 加 T 讓各瀏覽器正確解析為本地時間
+  return allData.filter(d => new Date(d.timestamp.replace(' ', 'T')) >= cut);
 }
 
 // ── 快速按鈕 ──────────────────────────────────────
@@ -426,6 +420,7 @@ function applyCustomRange() {
 
   if (!s && !e) { alert('請至少輸入開始或結束時間'); return; }
 
+  // datetime-local 回傳 "2026-02-28T10:00" 格式，直接 new Date() 即可
   customStart = s ? new Date(s) : null;
   customEnd   = e ? new Date(e) : null;
 
@@ -469,6 +464,8 @@ function updateHint() {
   } else {
     hint.textContent = `最近 ${quickHours} 小時`;
   }
+  // 同步更新進度條提示
+  updateScrollbar();
 }
 
 // ── 樓層切換 ────────────────────────────────────
@@ -502,50 +499,55 @@ function themeColor(varName) {
   return getComputedStyle(document.body).getPropertyValue(varName).trim();
 }
 
-// ── 拖拉狀態 ──────────────────────────────────────
-let panState = null;      // 拖拉時的起始狀態
-let chartData = [];       // 目前圖表使用的完整資料
-let viewStart = 0;        // 目前可視視窗起始索引
-let VIEW_SIZE = 36;       // 預設視窗大小（筆數）
+// ── 拖拉狀態（全域，只初始化一次） ─────────────
+let chartData    = [];   // 目前圖表的完整資料
+let viewStart    = 0;    // 目前可視視窗起始索引
+let VIEW_SIZE    = 36;   // 視窗大小（筆數）
+let panStartX    = null;
+let panStartView = 0;
+let panInited    = false;
 
-// ── 計算視窗大小（依快速按鈕） ──────────────────
-function calcViewSize() {
+// 視窗大小依快速按鈕計算
+function calcViewSize(dataLen) {
   if (quickHours !== 'all' && quickHours !== null) {
-    return Math.min(Number(quickHours) * 6, chartData.length);
+    return Math.min(Number(quickHours) * 6, dataLen);
   }
-  return Math.min(36, chartData.length); // 預設顯示 36 筆（約 6 小時）
+  return Math.min(36, dataLen); // 預設 36 筆 ≈ 6 小時
 }
 
-// ── 取出目前視窗的資料切片 ──────────────────────
+// 取出目前視窗切片
 function getViewSlice() {
-  const size = VIEW_SIZE;
-  const start = Math.max(0, Math.min(viewStart, chartData.length - size));
-  return chartData.slice(start, start + size);
+  const start = Math.max(0, Math.min(viewStart, chartData.length - VIEW_SIZE));
+  return chartData.slice(start, start + VIEW_SIZE);
 }
 
-// ── 折線圖 ──────────────────────────────────────
+// ── 折線圖主入口（資料變更時呼叫） ─────────────
 function renderChart(data) {
-  chartData = data;
-  VIEW_SIZE = calcViewSize();
-  // 預設捲到最新資料
-  viewStart = Math.max(0, chartData.length - VIEW_SIZE);
-  drawChart();
-  setupPan();
+  chartData  = data;
+  VIEW_SIZE  = calcViewSize(data.length);
+  viewStart  = Math.max(0, data.length - VIEW_SIZE); // 預設顯示最新資料
+  drawChart();       // 畫圖
+  setupPan();        // 綁定拖拉（只綁一次）
+  updateScrollbar(); // 更新進度條
 }
 
+// ── 實際繪圖（拖拉時重複呼叫） ─────────────────
 function drawChart() {
-  const ctx = document.getElementById('chart').getContext('2d');
+  const canvas = document.getElementById('chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
   if (chart) chart.destroy();
 
   const slice = getViewSlice();
 
   if (!slice.length) {
     chart = null;
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#64748b';
     ctx.font = '14px Noto Sans TC';
     ctx.textAlign = 'center';
-    ctx.fillText('此區間無資料', ctx.canvas.width / 2, 150);
+    ctx.fillText('此區間無資料', canvas.width / 2, 150);
+    updateScrollbar();
     return;
   }
 
@@ -553,20 +555,19 @@ function drawChart() {
   const colTotal   = themeColor('--total');
   const colB1f     = themeColor('--b1f');
   const colB2f     = themeColor('--b2f');
-  const colGrid    = isLight ? 'rgba(0,0,0,0.07)'  : 'rgba(30,45,69,.6)';
-  const colTick    = isLight ? '#94a3b8'            : '#64748b';
-  const colTipBg   = isLight ? '#ffffff'            : '#1a2234';
-  const colTipBody = isLight ? '#1e293b'            : '#e2e8f0';
-  const colTipBdr  = isLight ? '#dde1ea'            : '#1e2d45';
+  const colGrid    = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(30,45,69,.6)';
+  const colTick    = isLight ? '#94a3b8'           : '#64748b';
+  const colTipBg   = isLight ? '#ffffff'           : '#1a2234';
+  const colTipBody = isLight ? '#1e293b'           : '#e2e8f0';
+  const colTipBdr  = isLight ? '#dde1ea'           : '#1e2d45';
 
   const labels = slice.map(d => d.timestamp.slice(5, 16));
-  const pt = slice.length <= 72 ? 3 : 0;
+  const pt     = slice.length <= 72 ? 3 : 0;
 
   const ds = (label, key, color) => ({
     label, data: slice.map(d => d[key]),
     borderColor: color, backgroundColor: color + '22',
-    borderWidth: 2, pointRadius: pt,
-    pointHoverRadius: 5,
+    borderWidth: 2, pointRadius: pt, pointHoverRadius: 5,
     pointBackgroundColor: color, tension: 0.4, fill: true,
   });
 
@@ -574,18 +575,19 @@ function drawChart() {
   const showB1  = floor === 'all' || floor === 'B1F';
   const showB2  = floor === 'all' || floor === 'B2F';
 
-  const datasets = [
-    ...(showAll ? [ds('全場合計', 'total', colTotal)] : []),
-    ...(showB2  ? [ds('B2F',     'B2F',   colB2f)]   : []),
-    ...(showB1  ? [ds('B1F',     'B1F',   colB1f)]   : []),
-  ];
-
   chart = new Chart(ctx, {
     type: 'line',
-    data: { labels, datasets },
+    data: {
+      labels,
+      datasets: [
+        ...(showAll ? [ds('全場合計', 'total', colTotal)] : []),
+        ...(showB2  ? [ds('B2F',     'B2F',   colB2f)]   : []),
+        ...(showB1  ? [ds('B1F',     'B1F',   colB1f)]   : []),
+      ]
+    },
     options: {
       responsive: true, maintainAspectRatio: false,
-      animation: false,   // 拖拉時關閉動畫，避免卡頓
+      animation: false,  // 關閉動畫讓拖拉順暢
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
@@ -608,80 +610,69 @@ function drawChart() {
       }
     }
   });
-
-  // 更新捲動進度條
   updateScrollbar();
 }
 
-// ── 拖拉事件綁定（滑鼠 + 觸控） ────────────────
+// ── 拖拉事件（掛在外層 div，只綁一次） ─────────
 function setupPan() {
-  const canvas = document.getElementById('chart');
-  if (!canvas) return;
+  if (panInited) return;
+  panInited = true;
+  const wrap = document.querySelector('.chart-wrap');
+  if (!wrap) return;
 
-  // 移除舊的事件（避免重複綁定）
-  canvas.replaceWith(canvas.cloneNode(true));
-  const c = document.getElementById('chart');
-
-  let startX = null;
-  let startViewStart = 0;
-  // 每 px 對應幾筆資料（依視窗寬度和視窗大小計算）
-  function pxPerItem() {
-    return c.offsetWidth / VIEW_SIZE;
+  function doPan(dx) {
+    const pxPerItem = wrap.offsetWidth / Math.max(1, VIEW_SIZE);
+    const shift = Math.round(-dx / pxPerItem);
+    const newStart = Math.max(0, Math.min(panStartView + shift, chartData.length - VIEW_SIZE));
+    if (newStart !== viewStart) {
+      viewStart = newStart;
+      drawChart();
+    }
   }
 
-  // 滑鼠事件
-  c.addEventListener('mousedown', e => {
-    startX = e.clientX;
-    startViewStart = viewStart;
-    c.style.cursor = 'grabbing';
-    e.preventDefault();
+  // 滑鼠
+  wrap.addEventListener('mousedown', e => {
+    panStartX = e.clientX; panStartView = viewStart;
+    wrap.style.cursor = 'grabbing'; e.preventDefault();
   });
   window.addEventListener('mousemove', e => {
-    if (startX === null) return;
-    const dx = e.clientX - startX;
-    const shift = Math.round(-dx / pxPerItem());
-    viewStart = Math.max(0, Math.min(startViewStart + shift, chartData.length - VIEW_SIZE));
-    drawChart();
+    if (panStartX === null) return;
+    doPan(e.clientX - panStartX);
   });
   window.addEventListener('mouseup', () => {
-    if (startX === null) return;
-    startX = null;
-    c.style.cursor = 'grab';
+    if (panStartX === null) return;
+    panStartX = null; wrap.style.cursor = 'grab';
   });
 
-  // 觸控事件（手機）
-  c.addEventListener('touchstart', e => {
-    startX = e.touches[0].clientX;
-    startViewStart = viewStart;
+  // 觸控
+  wrap.addEventListener('touchstart', e => {
+    panStartX = e.touches[0].clientX; panStartView = viewStart;
     e.preventDefault();
   }, { passive: false });
-  c.addEventListener('touchmove', e => {
-    if (startX === null) return;
-    const dx = e.touches[0].clientX - startX;
-    const shift = Math.round(-dx / pxPerItem());
-    viewStart = Math.max(0, Math.min(startViewStart + shift, chartData.length - VIEW_SIZE));
-    drawChart();
+  wrap.addEventListener('touchmove', e => {
+    if (panStartX === null) return;
+    doPan(e.touches[0].clientX - panStartX);
     e.preventDefault();
   }, { passive: false });
-  c.addEventListener('touchend', () => { startX = null; });
+  wrap.addEventListener('touchend', () => { panStartX = null; });
 }
 
-// ── 捲動進度條更新 ──────────────────────────────
+// ── 進度條更新 ──────────────────────────────────
 function updateScrollbar() {
-  const bar = document.getElementById('pan-scrollbar');
+  const bar   = document.getElementById('pan-scrollbar');
   const thumb = document.getElementById('pan-thumb');
-  if (!bar || !thumb || !chartData.length) return;
+  if (!bar || !thumb) return;
   const total = chartData.length;
   const size  = VIEW_SIZE;
-  if (size >= total) { bar.style.display = 'none'; return; }
+  if (size >= total || total === 0) { bar.style.display = 'none'; return; }
   bar.style.display = 'block';
-  const thumbW = Math.max(10, (size / total) * 100);
-  const thumbL = (viewStart / (total - size)) * (100 - thumbW);
-  thumb.style.width = thumbW + '%';
-  thumb.style.left  = thumbL + '%';
+  const thumbPct = (size / total) * 100;
+  const leftPct  = (viewStart / Math.max(1, total - size)) * (100 - thumbPct);
+  thumb.style.width = thumbPct + '%';
+  thumb.style.left  = leftPct  + '%';
 }
 
-// ── 重置圖表視窗回最新 ──────────────────────────
+// ── 重置視窗到最新資料 ──────────────────────────
 function resetChartView() {
   if (!chartData.length) return;
   viewStart = Math.max(0, chartData.length - VIEW_SIZE);
@@ -717,16 +708,19 @@ function renderTable() {
   }).join('');
 }
 
-// ── 初始化 datetime-local 預設值 ───────────────
+// ── 初始化 datetime-local 預設值與範圍限制 ────
 function initDateInputs() {
   if (!allData.length) return;
-  // 預設顯示資料的最早與最晚時間，方便使用者知道可選範圍
   const first = allData[0].timestamp.replace(' ', 'T').slice(0, 16);
   const last  = allData[allData.length - 1].timestamp.replace(' ', 'T').slice(0, 16);
-  document.getElementById('dt-start').min = first;
-  document.getElementById('dt-start').max = last;
-  document.getElementById('dt-end').min   = first;
-  document.getElementById('dt-end').max   = last;
+  const sEl = document.getElementById('dt-start');
+  const eEl = document.getElementById('dt-end');
+  // min/max 限制選擇範圍
+  sEl.min = first;  sEl.max = last;
+  eEl.min = first;  eEl.max = last;
+  // 預設值：開始=最早一筆，結束=最新一筆（讓使用者一眼看到正確年份）
+  if (!sEl.value) sEl.value = first;
+  if (!eEl.value) eEl.value = last;
 }
 
 // ── 資料載入 ────────────────────────────────────
