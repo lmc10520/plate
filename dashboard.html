@@ -199,9 +199,16 @@
 
   /* Table */
   .tbl-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;}
-  .tbl-scroll{overflow-x:auto;max-height:360px;overflow-y:auto;}
+  .tbl-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);}
+  .tbl-toolbar label{font-size:.72rem;color:var(--muted);white-space:nowrap;}
+  .tbl-scroll{overflow-x:auto;max-height:480px;overflow-y:auto;}
   table{width:100%;border-collapse:collapse;font-size:.83rem;}
-  thead th{padding:9px 14px;text-align:left;font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;}
+  thead th{padding:9px 14px;text-align:left;font-size:.67rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1;cursor:pointer;user-select:none;white-space:nowrap;}
+  thead th:hover{color:var(--text);}
+  thead th .si{margin-left:3px;opacity:.3;font-size:.85em;}
+  thead th.asc .si,thead th.desc .si{opacity:1;color:var(--b1f);}
+  .th-nosort{cursor:default !important;}
+  .th-nosort:hover{color:var(--muted) !important;}
   tbody tr{border-bottom:1px solid rgba(30,45,69,.5);transition:background .15s;}
   tbody tr:hover{background:var(--surface2);}
   tbody td{padding:9px 14px;font-family:'JetBrains Mono',monospace;font-size:.81rem;}
@@ -209,6 +216,15 @@
   .cup{color:var(--danger);} .cdn{color:var(--success);} .csm{color:var(--muted);}
   .empty{text-align:center;padding:50px;color:var(--muted);}
   .empty .ico{font-size:2.5rem;margin-bottom:10px;}
+  .tbl-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  .page-info{font-size:.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+  .page-btns{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+  .pg{padding:4px 10px;border-radius:6px;font-size:.72rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;font-family:'Noto Sans TC',sans-serif;}
+  .pg:hover:not([disabled]){border-color:var(--b1f);color:var(--b1f);}
+  .pg[disabled]{opacity:.3;cursor:not-allowed;}
+  .pg.on{background:var(--b1f);color:#000;border-color:var(--b1f);font-weight:600;}
+  .dl-btn{padding:5px 14px;border-radius:8px;font-size:.75rem;font-weight:600;background:linear-gradient(135deg,var(--total),var(--b1f));color:#000;border:none;cursor:pointer;white-space:nowrap;transition:opacity .2s;font-family:'Noto Sans TC',sans-serif;}
+  .dl-btn:hover{opacity:.85;}
   
   .sec-hdr {
     display: flex;
@@ -312,9 +328,7 @@
 
     <!-- 折線圖工具列 -->
     <div class="chart-toolbar">
-      <div class="pan-hint">
-        <span>☜☞</span> 拖拉圖表可左右捲動歷史資料
-      </div>
+      <div class="pan-hint">拖拉圖表可左右捲動歷史資料</div>
       <button class="reset-btn" onclick="resetChartView()" title="回到預設視窗">↺ 重置視窗</button>
     </div>
 
@@ -354,17 +368,41 @@
   </div>
 
   <div class="tbl-box">
-    <div class="sec-hdr">
+    <div class="sec-hdr" style="margin-bottom:12px;">
       <div class="sec-title">詳細資料記錄</div>
       <span style="font-size:.78rem;color:var(--muted)" id="rec-cnt">共 0 筆</span>
     </div>
+    <div class="tbl-toolbar">
+      <label>表格區間</label>
+      <input type="datetime-local" id="tbl-start" class="dt-input">
+      <span style="color:var(--muted);font-size:.8rem">→</span>
+      <input type="datetime-local" id="tbl-end" class="dt-input">
+      <button class="apply-btn" onclick="applyTblFilter()">套用</button>
+      <button class="apply-btn" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border);" onclick="clearTblFilter()">清除</button>
+      <div style="flex:1;min-width:8px"></div>
+      <button class="dl-btn" onclick="downloadCSV()">⬇ 下載 CSV</button>
+    </div>
     <div class="tbl-scroll">
       <table>
-        <thead><tr><th>#</th><th>時間</th><th>B1F</th><th>B2F</th><th>合計</th><th>變化</th><th>滿場率</th></tr></thead>
+        <thead>
+          <tr>
+            <th class="th-nosort">#</th>
+            <th id="th-time"  onclick="sortTable('time' )">時間<span class="si">↕</span></th>
+            <th id="th-b1f"   onclick="sortTable('b1f'  )">B1F<span class="si">↕</span></th>
+            <th id="th-b2f"   onclick="sortTable('b2f'  )">B2F<span class="si">↕</span></th>
+            <th id="th-total" onclick="sortTable('total')">合計<span class="si">↕</span></th>
+            <th class="th-nosort">變化</th>
+            <th id="th-rate"  onclick="sortTable('rate' )">滿場率<span class="si">↕</span></th>
+          </tr>
+        </thead>
         <tbody id="tbody">
-          <tr><td colspan="7"><div class="empty"><div class="ico">⛓️‍💥</div><p>資料載入中…</p></div></td></tr>
+          <tr><td colspan="7"><div class="empty"><div class="ico">⏳</div><p>資料載入中…</p></div></td></tr>
         </tbody>
       </table>
+    </div>
+    <div class="tbl-footer">
+      <div class="page-info" id="page-info"></div>
+      <div class="page-btns" id="page-btns"></div>
     </div>
   </div>
     <div>
@@ -485,7 +523,7 @@ function render() {
   document.getElementById('s-b2f').textContent   = last.B2F;
   document.getElementById('s-rate').textContent  = (last.total / TOTAL * 100).toFixed(1) + '%';
   document.getElementById('last-update').textContent = '更新：' + last.timestamp;
-  document.getElementById('rec-cnt').textContent = `共 ${allData.length} 筆`;
+  // rec-cnt 由 renderTable() 統一更新
 
   const data = getFiltered();
   renderChart(data);
@@ -699,33 +737,164 @@ function resetChartView() {
   drawChart();
 }
 
-// ── 資料表格 ────────────────────────────────────
+// ══════════════════════════════════════════════════
+// 表格模組（排序、分頁、篩選、CSV 下載）
+// ══════════════════════════════════════════════════
+const TBL_PAGE_SIZE   = 200;
+const TBL_DEFAULT_HRS = 168;
+
+let tblData        = [];
+let tblPage        = 1;
+let tblSortKey     = 'time';
+let tblSortAsc     = false;
+let tblFilterStart = null;
+let tblFilterEnd   = null;
+
+function applyTblFilter() {
+  const s = document.getElementById('tbl-start').value;
+  const e = document.getElementById('tbl-end').value;
+  if (!s && !e) { alert('請至少輸入開始或結束時間'); return; }
+  tblFilterStart = s ? new Date(s) : null;
+  tblFilterEnd   = e ? new Date(e) : null;
+  tblPage = 1;
+  renderTable();
+}
+
+function clearTblFilter() {
+  tblFilterStart = null;
+  tblFilterEnd   = null;
+  document.getElementById('tbl-start').value = '';
+  document.getElementById('tbl-end').value   = '';
+  tblPage = 1;
+  renderTable();
+}
+
+function sortTable(key) {
+  tblSortAsc = (tblSortKey === key) ? !tblSortAsc : (key !== 'time');
+  tblSortKey = key;
+  ['time','b1f','b2f','total','rate'].forEach(k => {
+    const el = document.getElementById('th-' + k);
+    if (!el) return;
+    el.classList.remove('asc', 'desc');
+    if (k === key) el.classList.add(tblSortAsc ? 'asc' : 'desc');
+  });
+  tblPage = 1;
+  renderTable();
+}
+
+function getTblData() {
+  let base = [...allData];
+  if (tblFilterStart || tblFilterEnd) {
+    base = base.filter(d => {
+      const t = new Date(d.timestamp.replace(' ', 'T'));
+      if (tblFilterStart && t < tblFilterStart) return false;
+      if (tblFilterEnd   && t > tblFilterEnd)   return false;
+      return true;
+    });
+  } else {
+    const cut = new Date(Date.now() - TBL_DEFAULT_HRS * 3600000);
+    base = base.filter(d => new Date(d.timestamp.replace(' ', 'T')) >= cut);
+  }
+  base.sort((a, b) => {
+    let va, vb;
+    switch (tblSortKey) {
+      case 'time':  va = a.timestamp; vb = b.timestamp; break;
+      case 'b1f':   va = a.B1F;       vb = b.B1F;       break;
+      case 'b2f':   va = a.B2F;       vb = b.B2F;       break;
+      default:      va = a.total;     vb = b.total;     break;
+    }
+    if (va < vb) return tblSortAsc ? -1 : 1;
+    if (va > vb) return tblSortAsc ?  1 : -1;
+    return 0;
+  });
+  return base;
+}
+
 function renderTable() {
-  const tbody = document.getElementById('tbody');
-  const rev = [...allData].reverse();
-  if (!rev.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ico">🔄</div><p>資料載入中…</p></div></td></tr>';
+  tblData = getTblData();
+  const tbody    = document.getElementById('tbody');
+  const pageInfo = document.getElementById('page-info');
+  const pageBtns = document.getElementById('page-btns');
+
+  document.getElementById('rec-cnt').textContent =
+    '全部 ' + allData.length.toLocaleString() + ' 筆｜表格 ' + tblData.length.toLocaleString() + ' 筆';
+
+  if (!tblData.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ico">🔍</div><p>此區間無資料</p></div></td></tr>';
+    if (pageInfo) pageInfo.textContent = '';
+    if (pageBtns) pageBtns.innerHTML  = '';
     return;
   }
-  tbody.innerHTML = rev.map((row, i) => {
-    const origIdx = allData.length - 1 - i;
-    const prev = allData[origIdx - 1];
+
+  const totalPages = Math.ceil(tblData.length / TBL_PAGE_SIZE);
+  tblPage = Math.max(1, Math.min(tblPage, totalPages));
+  const s0       = (tblPage - 1) * TBL_PAGE_SIZE;
+  const pageData = tblData.slice(s0, s0 + TBL_PAGE_SIZE);
+
+  tbody.innerHTML = pageData.map(row => {
+    const origIdx = allData.indexOf(row);
+    const prev    = allData[origIdx - 1];
     let ch = '—', cc = 'csm';
     if (prev) {
-      const d = row.total - prev.total;
-      if (d > 0)      { ch = `▲ ${d}`;          cc = 'cup'; }
-      else if (d < 0) { ch = `▼ ${Math.abs(d)}`; cc = 'cdn'; }
+      const diff = row.total - prev.total;
+      if (diff > 0)      { ch = '▲ ' + diff;           cc = 'cup'; }
+      else if (diff < 0) { ch = '▼ ' + Math.abs(diff); cc = 'cdn'; }
     }
-    return `<tr>
-      <td style="color:var(--muted)">${origIdx + 1}</td>
-      <td>${row.timestamp}</td>
-      <td class="b1">${row.B1F}</td>
-      <td class="b2">${row.B2F}</td>
-      <td class="tt">${row.total}</td>
-      <td class="${cc}">${ch}</td>
-      <td style="color:var(--amber)">${(row.total/TOTAL*100).toFixed(1)}%</td>
-    </tr>`;
+    return '<tr>'
+      + '<td style="color:var(--muted)">' + (origIdx + 1) + '</td>'
+      + '<td>' + row.timestamp + '</td>'
+      + '<td class="b1">' + row.B1F + '</td>'
+      + '<td class="b2">' + row.B2F + '</td>'
+      + '<td class="tt">' + row.total + '</td>'
+      + '<td class="' + cc + '">' + ch + '</td>'
+      + '<td style="color:var(--amber)">' + (row.total / TOTAL * 100).toFixed(1) + '%</td>'
+      + '</tr>';
   }).join('');
+
+  if (pageInfo) pageInfo.textContent =
+    '第 ' + tblPage + ' / ' + totalPages + ' 頁'
+    + '（第 ' + (s0 + 1) + '–' + Math.min(s0 + TBL_PAGE_SIZE, tblData.length) + ' 筆）';
+
+  if (pageBtns) {
+    const nums = [1];
+    const lo = Math.max(2, tblPage - 2);
+    const hi = Math.min(totalPages - 1, tblPage + 2);
+    if (lo > 2)              nums.push('…');
+    for (let p = lo; p <= hi; p++) nums.push(p);
+    if (hi < totalPages - 1) nums.push('…');
+    if (totalPages > 1)      nums.push(totalPages);
+    pageBtns.innerHTML =
+      '<button class="pg" onclick="gotoPage(' + (tblPage-1) + ')" ' + (tblPage===1?'disabled':'') + '>‹</button>'
+      + nums.map(p => p === '…'
+          ? '<span style="color:var(--muted);padding:0 4px">…</span>'
+          : '<button class="pg ' + (p===tblPage?'on':'') + '" onclick="gotoPage('+p+')">' + p + '</button>'
+        ).join('')
+      + '<button class="pg" onclick="gotoPage(' + (tblPage+1) + ')" ' + (tblPage===totalPages?'disabled':'') + '>›</button>';
+  }
+}
+
+function gotoPage(p) {
+  tblPage = p;
+  renderTable();
+  const box = document.querySelector('.tbl-box');
+  if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function downloadCSV() {
+  if (!tblData.length) { alert('目前無資料可下載'); return; }
+  const rows = [['序號','時間','B1F','B2F','合計','滿場率(%)'].join(',')];
+  tblData.forEach(row => {
+    const idx = allData.indexOf(row) + 1;
+    rows.push([idx, row.timestamp, row.B1F, row.B2F, row.total,
+               (row.total / TOTAL * 100).toFixed(1)].join(','));
+  });
+  const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'parking_' + new Date().toISOString().slice(0,16).replace('T','_').replace(':','') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ── 初始化 datetime-local 預設值 ───────────────
