@@ -1,6 +1,6 @@
-*** index.html 程式碼透過 Google AI Studio Gemini 3 生成 ***
-*** dashboard.html 程式碼透過 Claude Sonnet 4.6 生成 ***
-*** 本資料為公益性質之使用，非營利且不涉及任何商業行為。如有涉及著作權之資料來源及其內容，皆屬原權利人所有，所有資訊皆源自網路上搜尋之開放資料進行統計呈現。 ***
+*** index.html 程式碼透過 Google AI Studio Gemini 3 生成 ***</br>
+*** dashboard.html 程式碼透過 Claude Sonnet 4.6 生成 ***</br>
+*** 本資料為公益性質之使用，非營利且不涉及任何商業行為。如有涉及著作權之資料來源及其內容，皆屬原權利人所有，所有資訊皆源自網路上搜尋之開放資料進行統計呈現。 ***</br>
 
 **Web App 功能摘要**
 
